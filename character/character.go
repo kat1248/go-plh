@@ -102,6 +102,11 @@ func fetchId(name string) (int, error) {
 	return id.(int), nil
 }
 
+func parseDate(dt string) {
+     t, _ := time.Parse("2006-01-02T15:04:05Z", dt)
+     fmt.Println(t)
+}
+
 func FetchCharacterData(name string) (CharacterData, error) {
 	cd := CharacterData{Name: name}
 
@@ -130,7 +135,7 @@ func FetchCharacterData(name string) (CharacterData, error) {
 	if err != nil {
 		return cd, fmt.Errorf("error unmarshaling record for %s", name)
 	}
-
+        parseDate(f.Birthday)
         cd.CorpId = f.CorpId
 	cd.Security = f.Security
         cd.IsNpcCorp = cd.CorpId < 2000000
