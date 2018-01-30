@@ -1,0 +1,21 @@
+{{define "layout"}}
+<!doctype html>
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="theme-color" content="#1a3d5c"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{template "title"}}</title>
+    <link type="text/css" rel="stylesheet" href="static/tablestyle.css"/>
+    <link type="text/css" rel="stylesheet" href="static/datastyle.css"/>
+    <script src="static/jquery-3.2.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.16/b-1.5.1/fh-3.1.3/rg-1.0.2/datatables.min.css"/>
+    <script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.10.16/b-1.5.1/fh-3.1.3/rg-1.0.2/datatables.min.js"></script>
+</head>
+<body style="background-color: #1a3d5c;">
+  {{template "body"}}
+<script type="text/javascript" src="static/sclh.js"></script>
+</body>
+</html>
+{{end}}

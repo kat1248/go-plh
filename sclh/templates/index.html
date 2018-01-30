@@ -1,0 +1,61 @@
+{{define "title"}}Signal Cartel's Little Helper{{end}}
+
+{{define "body"}}
+<div class="container">
+  <H1 style="text-align: center; color: White; background-color: #1a3d5c;padding: 10px;">Signal Cartel's Little Helper</H1>
+  <table id="chars" class="compact stripe order-column hover">
+    <thead>
+      <tr class="header">
+        <th></th>
+        <th></th>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Danger Level</th>
+        <th>Gang %</th>
+        <th>Security</th>
+        <th>Kills</th>
+        <th>Losses</th>
+        <th class="nothumb"></th>
+        <th>Corp</th>
+        <th>Alliance</th>
+        <th>Last Activity</th>
+        <th>Time in Corp</th>
+        <th>Corp ID</th>
+        <th>Corp Danger</th>
+        <th>NPC Corp</th>
+      </tr>
+    </thead>
+    <tfoot>
+      <tr class="header">
+        <th></th>
+        <th></th>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Danger Level</th>
+        <th>Gang %</th>
+        <th>Security</th>
+        <th>Kills</th>
+        <th>Losses</th>
+        <th></th>
+        <th>Corp</th>
+        <th>Alliance</th>
+        <th>Last Activity</th>
+        <th>Time in Corp</th>
+        <th>Corp ID</th>
+        <th>Corp Danger</th>
+        <th>NPC Corp</th>
+      </tr>
+    </tfoot>
+    <tbody>
+    </tbody>
+  </table> 
+  <form id="names-form" action="" method="POST">
+    <textarea id="name-list" name="characters" placeholder="Enter Character Names (maximum 30)" rows=10 cols=35></textarea>
+    <p><button type="button" onclick="sendNames()" maxlength="1000">Submit</button>
+      <button type="reset">Reset</button></p>
+  </form>
+  <form style="color:White;">
+    <input type="checkbox" onclick="toggleCorpGrouping()" class="group-button" value="group"> Group by Corporation<br>
+  </form>
+</div>
+{{end}}

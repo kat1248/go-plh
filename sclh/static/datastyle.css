@@ -1,0 +1,113 @@
+html.wait, html.wait * {
+    cursor: wait !important;
+}
+@font-face {
+    font-family: static;
+    src: url('static.woff');
+}
+@font-face {
+    font-family: static;
+    font-weight: bold;
+    src: url('staticbold.woff');
+}
+@font-face {
+    font-family: static;
+    font-weight: italic;
+    src: url('staticitalic.woff');
+}
+td.danger_thumb, td.thumb {
+    float: left; /* must be floated for same cross browser position of larger image */
+    position: relative;
+    margin: 1px;
+}
+td.thumb img, td.danger_thumb img { 
+    border-style: groove;
+    vertical-align: bottom;
+}
+td.thumb img { 
+    border: 2px solid #000;
+}
+td.thumb img { 
+    border: 2px solid #000;
+}
+td.blank_thumb img {
+    border: 2px solid transparent;
+}
+td.danger_thumb img {
+    border: 2px solid Red;
+}
+td.safe_thumb img { 
+    border: 2px solid Green;
+}
+td.danger_thumb:hover, td.thumb:hover {
+    border: 0; /* IE6 needs this to show large image */
+    z-index: 1;
+}
+td.danger_thumb span, td.thumb span { 
+    position: absolute;
+    visibility: hidden;
+}
+td.danger_thumb:hover span, td.thumb:hover span { 
+    visibility: visible;
+    top: 4px; left: 42px; 
+}
+.dataTables_filter {
+    padding: 2px;
+}
+tr.header {
+    background-color: White;
+}
+td.danger { 
+    color: Red;
+}
+td.safe { 
+    color: Green;
+}
+td.blank-control {
+    border: 4px solid transparent;
+}
+td.details-control {
+    background: url('details_open.png') no-repeat center center;
+    cursor: pointer;
+}
+tr.shown td.details-control {
+    background: url('details_close.png') no-repeat center center;
+}
+label {
+    color: White;
+}
+table {
+    padding: 15px;
+    background-color: #1a3d5c;
+}
+table.embedded {
+    padding: 5px 0px 5px 70px;
+    border-bottom: 1px;
+    background-color: White;
+    outline: none;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+table.embedded thead td {
+    font-weight: bold; 
+    border-bottom: 1px solid #111111;
+}
+body {
+    font-family: 'Lato',sans-serif;
+    /*font-family: static; */
+    font-size: 14px; 
+    background-color: #000; 
+    background-image: url('zephyr-wallpaper.jpg');
+    background-repeat: no-repeat;
+}
+.container {
+    padding: 10px;
+}
+form {
+    border: 2px solid Black;
+    padding: 10px;
+    margin-right: 5px;
+    border-radius: 5px;
+    float: left;
+    background-color: #1a3d5c;
+}
