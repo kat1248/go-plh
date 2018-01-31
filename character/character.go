@@ -11,26 +11,26 @@ import (
 )
 
 type CharacterData struct {
-	Name                string
-	CharacterId         int
-	Security            float32
-	Age                 string
-	Danger              int
-	Gang                int
-	Kills               int
-	Losses              int
-	HasKillboard        bool
-	LastKill            string
-	CorpName            string
-	CorpId              int
-	CorpAge             int
-	IsNpcCorp           bool
-	CorpDanger          int
-	AllianceName        string
-	RecentExplorerTotal int
-	RecentKillTotal     int
-	LastKillTime        string
-	KillsLastWeek       int
+	Name                string  `json:"name"`
+	CharacterId         int     `json:"character_id"`
+	Security            float32 `json:"security"`
+	Age                 string  `json:"age"`
+	Danger              int     `json:"danger"`
+	Gang                int     `json:"gang"`
+	Kills               int     `json:"kills"`
+	Losses              int     `json:"losses"`
+	HasKillboard        bool    `json:"has_killboard"`
+	LastKill            string  `json:"last_kill"`
+	CorpName            string  `json:"corp_name"`
+	CorpId              int     `json:"corp_id"`
+	CorpAge             int     `json:"corp_age"`
+	IsNpcCorp           bool    `json:"is_npc_corp"`
+	CorpDanger          int     `json:"corp_danger"`
+	AllianceName        string  `json:"alliance_name"`
+	RecentExplorerTotal int     `json:"recent_explorer_total"`
+	RecentKillTotal     int     `json:"recent_kill_total"`
+	LastKillTime        string  `json:"last_kill_time"`
+	KillsLastWeek       int     `json:"kills_last_week"`
 }
 
 var ccpCache = cache.New(60*time.Minute, 10*time.Minute)
