@@ -175,11 +175,26 @@ func fetchCharacterId(name string) (int, error) {
 		return 0, err
 	}
 
+	cid := 0
 	if len(f.Character) == 0 {
-		return 0, fmt.Errorf("invalid character name %s", name)
+		return cid, fmt.Errorf("invalid character name %s", name)
+	} else if len(f.Character) == 1 {
+		cid = f.Character[0]
+	} else {
+		for _, v := range f.Character {
+			rec, _ := fetchCharacterRecord(v)
+			type CCPResponse struct {
+				Name string `json:"name"`
+			}
+			var cr CCPResponse
+
+			_ = json.Unmarshal([]byte(rec), &cr)
+			if cr.Name == name {
+				cid = v
+				break
+			}
+		}
 	}
-	// TODO: handle multiple hits
-	cid := f.Character[0]
 	ccpCache.Set(name, cid, cache.NoExpiration)
 	return cid, nil
 }
