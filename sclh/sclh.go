@@ -31,17 +31,23 @@ func faviconHandler(w http.ResponseWriter, r *http.Request) {
 func serveData(w http.ResponseWriter, r *http.Request) {
 	names := strings.Split(r.FormValue("characters"), "\n")
 	profiles := make([]CharacterData, len(names))
-	index := 0
+	ch := make(chan *CharacterResponse)
 	for _, name := range names {
-		cd, err := FetchCharacterData(name)
-		if err != nil {
-			log.Println("error:", err)
-		} else {
-			profiles[index] = cd
-			index++
+		go FetchCharacterData(name, ch)
+	}
+	count := 0
+	for i := 0; i < len(names); i++ {
+		select {
+		case r := <-ch:
+			if r.Err != nil {
+				log.Println("error:", r.Err)
+			} else {
+				profiles[i] = *r.Char
+				count++
+			}
 		}
 	}
-	js, err := json.Marshal(profiles[0:index])
+	js, err := json.Marshal(profiles[0:count])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
