@@ -42,7 +42,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 			if r.Err != nil {
 				log.Println("error:", r.Err)
 			} else {
-				profiles[i] = *r.Char
+				profiles[count] = *r.Char
 				count++
 			}
 		}
