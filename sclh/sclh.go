@@ -18,9 +18,14 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/info", serveData)
 	http.HandleFunc("/", defaultHandler)
+	http.HandleFunc("/favicon.ico", faviconHandler)
 
 	log.Println("Listening...")
 	http.ListenAndServe(":8080", nil)
+}
+
+func faviconHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "static/favicon.ico")
 }
 
 func serveData(w http.ResponseWriter, r *http.Request) {
