@@ -403,7 +403,7 @@ func fetchCorpDanger(id int, ch chan *CharacterResponse) {
 	ids := fmt.Sprint(id)
 	danger, found := zkillCache.Get(ids)
 	if found {
-		cd.Danger = danger.(int)
+		cd.CorpDanger = danger.(int)
 	} else {
 		json_payload, _ := zkillFetch("stats/corporationID/" + ids + "/")
 
