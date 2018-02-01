@@ -63,7 +63,7 @@ const userAgent = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
 
 func FetchCharacterData(name string, out chan *CharacterResponse) {
 	cd := CharacterData{Name: name}
-	
+
 	id, err := fetchCharacterId(name)
 	if err != nil {
 		out <- &CharacterResponse{&cd, fmt.Errorf("%s not found", name)}
@@ -481,7 +481,7 @@ func fetchKillHistory(id int, ch chan *CharacterResponse) {
 		607: true, 11182: true, 586: true, 33468: true, 33470: true}
 
 	explorerTotal := 0
-	for i, k := range entries {
+	for _, k := range entries {
 		if _, ok := explorerShips[k.Victim.ShipTypeId]; ok {
 			explorerTotal++
 		}
