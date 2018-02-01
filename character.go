@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/imdario/mergo"
-	"github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/imdario/mergo"
+	"github.com/patrickmn/go-cache"
 )
 
 type CharacterData struct {
