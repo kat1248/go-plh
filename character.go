@@ -257,7 +257,6 @@ func fetchCharacterId(name string) (int, error) {
 
 	err := json.Unmarshal(json_payload, &f)
 	if err != nil {
-		fmt.Println("error 3:", err)
 		return 0, err
 	}
 
