@@ -4,7 +4,7 @@ package main
 // uses: go get -u github.com/imdario/mergo
 
 import (
-	. "character"
+	//. "character"
 	"encoding/json"
 	"html/template"
 	"log"
