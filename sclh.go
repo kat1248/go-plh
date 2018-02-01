@@ -39,7 +39,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		go FetchCharacterData(name, ch)
 	}
 	count := 0
-	for i := 0; i < len(names); i++ {
+	for range names {
 		select {
 		case r := <-ch:
 			if r.Err != nil {
