@@ -398,7 +398,7 @@ func fetchCorpStartDate(id int, ch chan *CharacterResponse) {
 }
 
 func fetchCorpDanger(id int, ch chan *CharacterResponse) {
-	cd := CharacterData{Danger: 0}
+	cd := CharacterData{CorpDanger: 0}
 
 	ids := fmt.Sprint(id)
 	danger, found := zkillCache.Get(ids)
@@ -418,8 +418,8 @@ func fetchCorpDanger(id int, ch chan *CharacterResponse) {
 			return
 		}
 
-		cd.Danger = z.Danger
-		zkillCache.Set(ids, cd.Danger, cache.DefaultExpiration)
+		cd.CorpDanger = z.Danger
+		zkillCache.Set(ids, cd.CorpDanger, cache.DefaultExpiration)
 	}
 
 	ch <- &CharacterResponse{&cd, nil}
