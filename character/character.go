@@ -40,6 +40,20 @@ type CharacterResponse struct {
 	Err  error
 }
 
+type VictimStruct struct {
+	CharacterId int `json:"character_id"`
+	ShipTypeId  int `json:"ship_type_id"`
+}
+
+type KillMail struct {
+	Victim       VictimStruct `json:"victim"`
+	KillMailTime string       `json:"killmail_time"`
+}
+
+type KillMailList struct {
+	KillMails []KillMail
+}
+
 var ccpCache = cache.New(60*time.Minute, 10*time.Minute)
 var zkillCache = cache.New(60*time.Minute, 10*time.Minute)
 
@@ -49,6 +63,7 @@ const userAgent = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
 
 func FetchCharacterData(name string, out chan *CharacterResponse) {
 	cd := CharacterData{Name: name}
+	
 	id, err := fetchCharacterId(name)
 	if err != nil {
 		out <- &CharacterResponse{&cd, fmt.Errorf("%s not found", name)}
@@ -78,11 +93,15 @@ func FetchCharacterData(name string, out chan *CharacterResponse) {
 		return
 	}
 
-	// Todo:
-	// 'recent_explorer_total': exp_total,
-	// 'recent_kill_total': kill_total,
-	// 'last_kill_time': last_kill_time,
-	// 'kills_last_week': kills_last_week
+	if cd.Kills != 0 {
+		go fetchKillHistory(id, ch)
+		go fetchRecentKillHistory(id, ch)
+
+		if err := handleChannelMerges(2, &cd, ch); err != nil {
+			out <- &CharacterResponse{&cd, err}
+			return
+		}
+	}
 
 	out <- &CharacterResponse{&cd, nil}
 }
@@ -406,23 +425,12 @@ func fetchCorpDanger(id int, ch chan *CharacterResponse) {
 	ch <- &CharacterResponse{&cd, nil}
 }
 
-func fetchLastKillActivity(id int, has_killboard bool, ch chan *CharacterResponse) {
+func fetchLastKillActivity(id int, hasKillboard bool, ch chan *CharacterResponse) {
 	cd := CharacterData{LastKill: ""}
 
-	if has_killboard {
+	if hasKillboard {
 		ids := fmt.Sprint(id)
 		json_payload, _ := zkillFetch("api/characterID/" + ids + "/limit/1/")
-
-		type VictimStruct struct {
-			CharacterId int `json:"character_id"`
-		}
-		type KillMail struct {
-			Victim       VictimStruct `json:"victim"`
-			KillMailTime string       `json:"killmail_time"`
-		}
-		type KillMailList struct {
-			KillMails []KillMail
-		}
 
 		entries := make([]KillMail, 0)
 		err := json.Unmarshal(json_payload, &entries)
@@ -446,6 +454,59 @@ func fetchLastKillActivity(id int, has_killboard bool, ch chan *CharacterRespons
 		}
 		cd.LastKill = what + " " + when
 	}
+
+	ch <- &CharacterResponse{&cd, nil}
+}
+
+func fetchKillHistory(id int, ch chan *CharacterResponse) {
+	cd := CharacterData{RecentExplorerTotal: 0, RecentKillTotal: 0, LastKillTime: ""}
+
+	ids := fmt.Sprint(id)
+	json_payload, _ := zkillFetch("api/kills/characterID/" + ids + "/")
+
+	entries := make([]KillMail, 0)
+	err := json.Unmarshal(json_payload, &entries)
+	if err != nil {
+		ch <- &CharacterResponse{&cd, err}
+		return
+	}
+
+	if len(entries) == 0 {
+		ch <- &CharacterResponse{&cd, err}
+		return
+	}
+
+	explorerShips := map[int]bool{
+		29248: true, 11188: true, 11192: true, 605: true, 11172: true,
+		607: true, 11182: true, 586: true, 33468: true, 33470: true}
+
+	explorerTotal := 0
+	for i, k := range entries {
+		if _, ok := explorerShips[k.Victim.ShipTypeId]; ok {
+			explorerTotal++
+		}
+	}
+
+	cd.RecentExplorerTotal = explorerTotal
+	cd.RecentKillTotal = len(entries)
+	cd.LastKillTime = strings.Split(entries[len(entries)-1].KillMailTime, "T")[0]
+
+	ch <- &CharacterResponse{&cd, nil}
+}
+
+func fetchRecentKillHistory(id int, ch chan *CharacterResponse) {
+	cd := CharacterData{KillsLastWeek: 0}
+
+	ids := fmt.Sprint(id)
+	json_payload, _ := zkillFetch("api/kills/characterID/" + ids + "/pastSeconds/604800/")
+
+	entries := make([]KillMail, 0)
+	err := json.Unmarshal(json_payload, &entries)
+	if err != nil {
+		ch <- &CharacterResponse{&cd, err}
+		return
+	}
+	cd.KillsLastWeek = len(entries)
 
 	ch <- &CharacterResponse{&cd, nil}
 }
