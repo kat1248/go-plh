@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -11,14 +13,18 @@ import (
 )
 
 func main() {
+	var port int
+	flag.IntVar(&port, "port", 8080, "port to listen on")
+	flag.Parse()
+
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/info", serveData)
 	http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
-	log.Println("Listening...")
-	http.ListenAndServe(":8080", nil)
+	log.Println("Listening on port", fmt.Sprint(port))
+	http.ListenAndServe(":"+fmt.Sprint(port), nil)
 }
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +78,7 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl, _ := template.ParseFiles(lp, fp)
+	tmpl, err := template.ParseFiles(lp, fp)
 	if err != nil {
 		// Log the detailed error
 		log.Println(err.Error())
