@@ -1,10 +1,6 @@
 package main
 
-// uses: go get github.com/patrickmn/go-cache
-// uses: go get -u github.com/imdario/mergo
-
 import (
-	//. "character"
 	"encoding/json"
 	"html/template"
 	"log"

@@ -12,6 +12,10 @@ The server code is written in Go.  The client side
 code is Javascript with DataTables.  The information is pulled from
 CCP using the ESI interface and zkillboard using their API.
 
+## Imports
+1. go-cache 'go get github.com/patrickmn/go-cache'
+2. mergo 'go get -u github.com/imdario/mergo'
+
 ## Running locally
 
 Replace this with good stuff
