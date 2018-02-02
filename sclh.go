@@ -14,7 +14,7 @@ import (
 
 func main() {
 	var port int
-	flag.IntVar(&port, "port", 8080, "port to listen on")
+	flag.IntVar(&port, "port", 80, "port to listen on")
 	flag.Parse()
 
 	fs := http.FileServer(http.Dir("static"))
@@ -57,6 +57,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
+	log.Println("Handled", fmt.Sprint(count), "names")
 }
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
