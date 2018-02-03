@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -17,11 +18,10 @@ func main() {
 	flag.IntVar(&port, "port", 80, "port to listen on")
 	flag.Parse()
 
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/info", serveData)
 	http.HandleFunc("/", defaultHandler)
-	http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/health", HealthCheckHandler)
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
 	log.Println("Listening on port", fmt.Sprint(port))
@@ -32,17 +32,14 @@ func faviconHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "static/favicon.ico")
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		type HealthCheck struct {
-			Message string
-		}
-		h := HealthCheck{Message: "OK"}
-		js, _ := json.Marshal(h)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-	*/
+func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	// A very simple health check.
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+
+	// In the future we could report back on the status of our DB, or our cache
+	// (e.g. Redis) by performing a simple PING, and include them in the response.
+	io.WriteString(w, `{"alive": true}`)
 }
 
 func serveData(w http.ResponseWriter, r *http.Request) {
@@ -69,8 +66,10 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
+
 	log.Println("Handled", fmt.Sprint(count), "names")
 }
 
