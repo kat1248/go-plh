@@ -21,6 +21,7 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/info", serveData)
 	http.HandleFunc("/", defaultHandler)
+	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
 	log.Println("Listening on port", fmt.Sprint(port))
@@ -29,6 +30,19 @@ func main() {
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "static/favicon.ico")
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	/*
+		type HealthCheck struct {
+			Message string
+		}
+		h := HealthCheck{Message: "OK"}
+		js, _ := json.Marshal(h)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+	*/
+	w.WriteHeader(http.StatusOK)
 }
 
 func serveData(w http.ResponseWriter, r *http.Request) {
