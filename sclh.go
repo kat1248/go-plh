@@ -56,11 +56,11 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	for range names {
 		select {
 		case r := <-ch:
-			if r.Err != nil {
-				log.Println("error:", r.Err)
-			} else {
+			if r.Err == nil {
 				profiles[count] = *r.Char
 				count++
+			} else {
+				log.Println("error:", r.Err)
 			}
 		}
 	}
