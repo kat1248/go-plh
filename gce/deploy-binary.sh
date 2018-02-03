@@ -6,10 +6,10 @@
 
 set -ex
 
-if [ ! $(dirname $0) = "." ]; then
-  echo "Must run $(basename $0) from the gce_deployment directory."
-  exit 1
-fi
+#if [ ! $(dirname $0) = "." ]; then
+#  echo "Must run $(basename $0) from the gce_deployment directory."
+#  exit 1
+#fi
 
 SCLH_DEPLOY_LOCATION=gs://sclh-deploy/go-plh.tar
 
