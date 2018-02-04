@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/imdario/mergo"
@@ -80,56 +81,61 @@ func FetchCharacterData(name string) *CharacterResponse {
 
 	cd.CharacterId = id
 
-	ch := make(chan *CharacterResponse)
+	ch := make(chan *CharacterResponse, 3)
+	var wg sync.WaitGroup
 
-	outstanding := 0
-	fetchData(ch, fetchCCPRecord, id, &outstanding)
-	fetchData(ch, fetchZKillRecord, id, &outstanding)
-	fetchData(ch, fetchCorpStartDate, id, &outstanding)
+	fetcher := func(f func(int) *CharacterResponse, id int) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ch <- f(id)
+		}()
+	}
 
-	if err := handleChannelMerges(outstanding, &cd, ch); err != nil {
+	fetcher(fetchCCPRecord, cd.CharacterId)
+	fetcher(fetchZKillRecord, cd.CharacterId)
+	fetcher(fetchCorpStartDate, cd.CharacterId)
+
+	wg.Wait()
+	close(ch)
+
+	if err := handleMerges(&cd, ch); err != nil {
 		return &CharacterResponse{&cd, err}
 	}
 
-	outstanding = 0
-	fetchData(ch, fetchCorpDanger, cd.CorpId, &outstanding)
-	fetchData(ch, fetchAllianceName, cd.AllianceId, &outstanding)
-	fetchData(ch, fetchCorporationName, cd.CorpId, &outstanding)
+	ch = make(chan *CharacterResponse, 6)
+
+	fetcher(fetchCorpDanger, cd.CorpId)
+	fetcher(fetchAllianceName, cd.AllianceId)
+	fetcher(fetchCorporationName, cd.CorpId)
 
 	if cd.HasKillboard {
-		fetchData(ch, fetchLastKillActivity, id, &outstanding)
+		fetcher(fetchLastKillActivity, cd.CharacterId)
 	}
 
 	if cd.Kills != 0 {
-		fetchData(ch, fetchKillHistory, id, &outstanding)
-		fetchData(ch, fetchRecentKillHistory, id, &outstanding)
+		fetcher(fetchKillHistory, cd.CharacterId)
+		fetcher(fetchRecentKillHistory, cd.CharacterId)
 	}
 
-	if err := handleChannelMerges(outstanding, &cd, ch); err != nil {
+	wg.Wait()
+	close(ch)
+
+	if err := handleMerges(&cd, ch); err != nil {
 		return &CharacterResponse{&cd, err}
 	}
 
 	return &CharacterResponse{&cd, nil}
 }
 
-func handleChannelMerges(num int, cd *CharacterData, ch chan *CharacterResponse) error {
-	for i := 0; i < num; i++ {
-		select {
-		case r := <-ch:
-			if r.Err != nil {
-				return r.Err
-			}
-			mergo.Merge(cd, r.Char)
+func handleMerges(cd *CharacterData, ch chan *CharacterResponse) error {
+	for r := range ch {
+		if r.Err != nil {
+			return r.Err
 		}
+		mergo.Merge(cd, r.Char)
 	}
 	return nil
-}
-
-func fetchData(ch chan *CharacterResponse, f func(int) *CharacterResponse, id int, count *int) {
-	*count++
-	go func() {
-		ch <- f(id)
-	}()
 }
 
 func fetchCCPRecord(id int) *CharacterResponse {
