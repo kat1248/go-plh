@@ -43,14 +43,10 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	profiles := make([]CharacterData, 0)
 	ch := make(chan *CharacterResponse)
 
-	fetcher := func(f func(string) *CharacterResponse, name string) {
-		go func() {
-			ch <- f(name)
-		}()
-	}
-
 	for _, name := range names {
-		fetcher(FetchCharacterData, name)
+		go func(name string) {
+			ch <- FetchCharacterData(name)
+		}(name)
 	}
 
 	for range names {
