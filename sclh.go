@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 func main() {
@@ -41,22 +42,25 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 func serveData(w http.ResponseWriter, r *http.Request) {
 	names := strings.Split(r.FormValue("characters"), "\n")
 	profiles := make([]CharacterData, 0)
-	ch := make(chan *CharacterResponse)
+	ch := make(chan *CharacterResponse, len(names))
+	var wg sync.WaitGroup
 
 	for _, name := range names {
+		wg.Add(1)
 		go func(name string) {
+			defer wg.Done()
 			ch <- FetchCharacterData(name)
 		}(name)
 	}
 
-	for range names {
-		select {
-		case r := <-ch:
-			if r.Err == nil {
-				profiles = append(profiles, *r.Char)
-			} else {
-				log.Println("error:", r.Err)
-			}
+	wg.Wait()
+	close(ch)
+
+	for r := range ch {
+		if r.Err == nil {
+			profiles = append(profiles, *r.Char)
+		} else {
+			log.Println("error:", r.Err)
 		}
 	}
 
