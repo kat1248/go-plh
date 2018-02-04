@@ -64,6 +64,7 @@ const (
 var (
 	ccpCache   = cache.New(60*time.Minute, 10*time.Minute)
 	zkillCache = cache.New(60*time.Minute, 10*time.Minute)
+	nicknames  = map[string]string{"Mynxee": "Space Mom", "Portia Tigana": "Tiggs"}
 )
 
 func fetchCharacterData(name string) *CharacterResponse {
@@ -122,6 +123,10 @@ func fetchCharacterData(name string) *CharacterResponse {
 
 	if err := handleMerges(&cd, ch); err != nil {
 		return &CharacterResponse{&cd, err}
+	}
+
+	if n, ok := nicknames[name]; ok {
+		cd.Name = n
 	}
 
 	return &CharacterResponse{&cd, nil}
@@ -294,9 +299,10 @@ func fetchMultipleIds(name string, ids []int) int {
 		json string
 		id   int
 	}
-	ch := make(chan *FetchData, len(ids))
 
+	ch := make(chan *FetchData, len(ids))
 	var wg sync.WaitGroup
+
 	for _, v := range ids {
 		wg.Add(1)
 		go func(v int) {
@@ -305,8 +311,8 @@ func fetchMultipleIds(name string, ids []int) int {
 			ch <- &FetchData{json: rec, id: v}
 		}(v)
 	}
-	wg.Wait()
 
+	wg.Wait()
 	close(ch)
 
 	type CCPResponse struct {
@@ -499,9 +505,7 @@ func fetchKillHistory(id int) *CharacterResponse {
 		return &CharacterResponse{&cd, err}
 	}
 
-	explorerShips := map[int]bool{
-		29248: true, 11188: true, 11192: true, 605: true, 11172: true,
-		607: true, 11182: true, 586: true, 33468: true, 33470: true}
+	explorerShips := map[int]bool{29248: true, 11188: true, 11192: true, 605: true, 11172: true, 607: true, 11182: true, 586: true, 33468: true, 33470: true}
 
 	explorerTotal := 0
 	for _, k := range entries {
