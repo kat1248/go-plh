@@ -67,7 +67,7 @@ var (
 	zkillCache = cache.New(60*time.Minute, 10*time.Minute)
 )
 
-func FetchCharacterData(name string) *CharacterResponse {
+func fetchCharacterData(name string) *CharacterResponse {
 	cd := CharacterData{Name: name}
 
 	if len(name) <= 3 {
@@ -281,24 +281,48 @@ func fetchCharacterId(name string) (int, error) {
 	} else if len(f.Character) == 1 {
 		cid = f.Character[0]
 	} else {
-		for _, v := range f.Character {
-			rec, _ := fetchCharacterJson(v)
-
-			type CCPResponse struct {
-				Name string `json:"name"`
-			}
-			var cr CCPResponse
-
-			_ = json.Unmarshal([]byte(rec), &cr)
-			if cr.Name == name {
-				cid = v
-				break
-			}
-		}
+		cid = fetchMultipleIds(name, f.Character)
 	}
 
 	ccpCache.Set(name, cid, cache.NoExpiration)
 	return cid, nil
+}
+
+func fetchMultipleIds(name string, ids []int) int {
+	cid := 0
+
+	type FetchData struct {
+		json string
+		id   int
+	}
+	ch := make(chan *FetchData, len(ids))
+
+	var wg sync.WaitGroup
+	for _, v := range ids {
+		wg.Add(1)
+		go func(v int) {
+			defer wg.Done()
+			rec, _ := fetchCharacterJson(v)
+			ch <- &FetchData{json: rec, id: v}
+		}(v)
+	}
+	wg.Wait()
+
+	close(ch)
+
+	type CCPResponse struct {
+		Name string `json:"name"`
+	}
+	var cr CCPResponse
+	for r := range ch {
+		_ = json.Unmarshal([]byte(r.json), &cr)
+		if cr.Name == name {
+			cid = r.id
+			break
+		}
+	}
+
+	return cid
 }
 
 func fetchCorporationName(id int) *CharacterResponse {

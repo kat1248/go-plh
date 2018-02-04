@@ -49,7 +49,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			ch <- FetchCharacterData(name)
+			ch <- fetchCharacterData(name)
 		}(name)
 	}
 
