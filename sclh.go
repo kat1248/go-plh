@@ -21,7 +21,7 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/info", serveData)
 	http.HandleFunc("/", defaultHandler)
-	http.HandleFunc("/health", HealthCheckHandler)
+	http.HandleFunc("/health", healthCheckHandler)
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
 	log.Println("Listening on port", fmt.Sprint(port))
@@ -32,13 +32,9 @@ func faviconHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "static/favicon.ico")
 }
 
-func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	// A very simple health check.
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-
-	// In the future we could report back on the status of our DB, or our cache
-	// (e.g. Redis) by performing a simple PING, and include them in the response.
 	io.WriteString(w, `{"alive": true}`)
 }
 
