@@ -45,7 +45,7 @@ func secondsSince(dt string) float64 {
 }
 
 func daysSince(dt string) int {
-	return int(secondsSince(dt)) / 86400
+	return int(secondsSince(dt)) / SecondsInDay
 }
 
 func getDate(dt string) string {
