@@ -217,7 +217,10 @@ func fetchUrl(url string, params map[string]string) ([]byte, error) {
 		req.URL.RawQuery = q.Encode()
 	}
 
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
 	defer resp.Body.Close()
 	resp_body, _ := ioutil.ReadAll(resp.Body)

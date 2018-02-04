@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,7 @@ func main() {
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
 	log.Println("Listening on port", fmt.Sprint(port))
-	http.ListenAndServe(":"+fmt.Sprint(port), nil)
+	log.Println(http.ListenAndServe(":"+fmt.Sprint(port), nil))
 }
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
