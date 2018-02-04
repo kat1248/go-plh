@@ -40,8 +40,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 func serveData(w http.ResponseWriter, r *http.Request) {
 	names := strings.Split(r.FormValue("characters"), "\n")
-	profiles := make([]CharacterData, len(names))
-
+	profiles := make([]CharacterData, 0)
 	ch := make(chan *CharacterResponse)
 
 	fetcher := func(f func(string) *CharacterResponse, name string) {
@@ -54,20 +53,18 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		fetcher(FetchCharacterData, name)
 	}
 
-	count := 0
 	for range names {
 		select {
 		case r := <-ch:
 			if r.Err == nil {
-				profiles[count] = *r.Char
-				count++
+				profiles = append(profiles, *r.Char)
 			} else {
 				log.Println("error:", r.Err)
 			}
 		}
 	}
 
-	js, err := json.Marshal(profiles[0:count])
+	js, err := json.Marshal(profiles)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -76,7 +73,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 
-	log.Println("Handled", fmt.Sprint(count), "names")
+	log.Println("Handled", fmt.Sprint(len(profiles)), "names")
 }
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
