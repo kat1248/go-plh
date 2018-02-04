@@ -38,8 +38,8 @@ type CharacterData struct {
 }
 
 type CharacterResponse struct {
-	Char *CharacterData
-	Err  error
+	char *CharacterData
+	err  error
 }
 
 type VictimStruct struct {
@@ -130,10 +130,10 @@ func fetchCharacterData(name string) *CharacterResponse {
 
 func handleMerges(cd *CharacterData, ch chan *CharacterResponse) error {
 	for r := range ch {
-		if r.Err != nil {
-			return r.Err
+		if r.err != nil {
+			return r.err
 		}
-		mergo.Merge(cd, r.Char)
+		mergo.Merge(cd, r.char)
 	}
 	return nil
 }

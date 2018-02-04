@@ -57,10 +57,10 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	close(ch)
 
 	for r := range ch {
-		if r.Err == nil {
-			profiles = append(profiles, *r.Char)
+		if r.err == nil {
+			profiles = append(profiles, *r.char)
 		} else {
-			log.Println("error:", r.Err)
+			log.Println("error:", r.err)
 		}
 	}
 
