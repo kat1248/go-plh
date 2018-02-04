@@ -55,19 +55,28 @@ type KillMailList struct {
 	KillMails []KillMail
 }
 
-var ccpCache = cache.New(60*time.Minute, 10*time.Minute)
-var zkillCache = cache.New(60*time.Minute, 10*time.Minute)
+const (
+	ccpEsiURL   = "https://esi.tech.ccp.is/latest/"
+	zkillApiURL = "https://zkillboard.com/api/"
+	userAgent   = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
+)
 
-const ccpEsiURL = "https://esi.tech.ccp.is/latest/"
-const zkillApiURL = "https://zkillboard.com/api/"
-const userAgent = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
+var (
+	ccpCache   = cache.New(60*time.Minute, 10*time.Minute)
+	zkillCache = cache.New(60*time.Minute, 10*time.Minute)
+)
 
 func FetchCharacterData(name string, out chan *CharacterResponse) {
 	cd := CharacterData{Name: name}
 
+	if len(name) <= 3 {
+		out <- &CharacterResponse{&cd, fmt.Errorf("'%s' invalid", name)}
+		return
+	}
+
 	id, err := fetchCharacterId(name)
 	if err != nil {
-		out <- &CharacterResponse{&cd, fmt.Errorf("%s not found", name)}
+		out <- &CharacterResponse{&cd, fmt.Errorf("'%s' not found", name)}
 		return
 	}
 
@@ -87,9 +96,14 @@ func FetchCharacterData(name string, out chan *CharacterResponse) {
 	go fetchCorpDanger(cd.CorpId, ch)
 	go fetchAllianceName(cd.AllianceId, ch)
 	go fetchCorporationName(cd.CorpId, ch)
-	go fetchLastKillActivity(id, cd.HasKillboard, ch)
 
-	if err := handleChannelMerges(4, &cd, ch); err != nil {
+	outstanding := 3
+	if cd.HasKillboard {
+		go fetchLastKillActivity(id, ch)
+		outstanding++
+	}
+
+	if err := handleChannelMerges(outstanding, &cd, ch); err != nil {
 		out <- &CharacterResponse{&cd, err}
 		return
 	}
@@ -425,35 +439,33 @@ func fetchCorpDanger(id int, ch chan *CharacterResponse) {
 	ch <- &CharacterResponse{&cd, nil}
 }
 
-func fetchLastKillActivity(id int, hasKillboard bool, ch chan *CharacterResponse) {
+func fetchLastKillActivity(id int, ch chan *CharacterResponse) {
 	cd := CharacterData{LastKill: ""}
 
-	if hasKillboard {
-		ids := fmt.Sprint(id)
-		json_payload, _ := zkillFetch("api/characterID/" + ids + "/limit/1/")
+	ids := fmt.Sprint(id)
+	json_payload, _ := zkillFetch("api/characterID/" + ids + "/limit/1/")
 
-		entries := make([]KillMail, 0)
-		err := json.Unmarshal(json_payload, &entries)
-		if err != nil {
-			ch <- &CharacterResponse{&cd, err}
-			return
-		}
-
-		if len(entries) == 0 {
-			ch <- &CharacterResponse{&cd, err}
-			return
-		}
-
-		when := strings.Split(entries[0].KillMailTime, "T")[0]
-		who := entries[0].Victim.CharacterId
-		what := "kill"
-		if who == id {
-			what = "died"
-		} else if who == 0 {
-			what = "struct"
-		}
-		cd.LastKill = what + " " + when
+	entries := make([]KillMail, 0)
+	err := json.Unmarshal(json_payload, &entries)
+	if err != nil {
+		ch <- &CharacterResponse{&cd, err}
+		return
 	}
+
+	if len(entries) == 0 {
+		ch <- &CharacterResponse{&cd, err}
+		return
+	}
+
+	when := getDate(entries[0].KillMailTime)
+	who := entries[0].Victim.CharacterId
+	what := "kill"
+	if who == id {
+		what = "died"
+	} else if who == 0 {
+		what = "struct"
+	}
+	cd.LastKill = what + " " + when
 
 	ch <- &CharacterResponse{&cd, nil}
 }
@@ -482,14 +494,14 @@ func fetchKillHistory(id int, ch chan *CharacterResponse) {
 
 	explorerTotal := 0
 	for _, k := range entries {
-		if _, ok := explorerShips[k.Victim.ShipTypeId]; ok {
+		if explorerShips[k.Victim.ShipTypeId] {
 			explorerTotal++
 		}
 	}
 
 	cd.RecentExplorerTotal = explorerTotal
 	cd.RecentKillTotal = len(entries)
-	cd.LastKillTime = strings.Split(entries[len(entries)-1].KillMailTime, "T")[0]
+	cd.LastKillTime = getDate(entries[len(entries)-1].KillMailTime)
 
 	ch <- &CharacterResponse{&cd, nil}
 }
@@ -511,13 +523,21 @@ func fetchRecentKillHistory(id int, ch chan *CharacterResponse) {
 	ch <- &CharacterResponse{&cd, nil}
 }
 
+const (
+	SecondsInMinute = 60
+	SecondsInHour   = 60 * SecondsInMinute
+	SecondsInDay    = 24 * SecondsInHour
+	SecondsInMonth  = 30 * SecondsInDay
+	SecondsInYear   = 365 * SecondsInDay
+)
+
 func secondsToTimeString(seconds float64) string {
 	s := int(seconds)
-	years := s / 31104000
-	s -= years * 31104000
-	months := s / 2592000
-	s -= months * 2592000
-	days := s / 86400
+	years := s / SecondsInYear
+	s -= years * SecondsInYear
+	months := s / SecondsInMonth
+	s -= months * SecondsInMonth
+	days := s / SecondsInDay
 	ts := ""
 	if years > 0 {
 		ts += fmt.Sprint(years) + "y"
@@ -543,4 +563,8 @@ func secondsSince(dt string) float64 {
 
 func daysSince(dt string) int {
 	return int(secondsSince(dt)) / 86400
+}
+
+func getDate(dt string) string {
+	return strings.Split(dt, "T")[0]
 }
