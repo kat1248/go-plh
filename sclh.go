@@ -43,7 +43,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	profiles := make([]CharacterData, len(names))
 	ch := make(chan *CharacterResponse)
 	for _, name := range names {
-		go FetchCharacterData(name, ch)
+		fetch(ch, FetchCharacterData, name)
 	}
 	count := 0
 	for range names {
@@ -67,6 +67,12 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 
 	log.Println("Handled", fmt.Sprint(count), "names")
+}
+
+func fetch(ch chan *CharacterResponse, f func(string) *CharacterResponse, name string) {
+	go func() {
+		ch <- f(name)
+	}()
 }
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {

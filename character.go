@@ -66,59 +66,50 @@ var (
 	zkillCache = cache.New(60*time.Minute, 10*time.Minute)
 )
 
-func FetchCharacterData(name string, out chan *CharacterResponse) {
+func FetchCharacterData(name string) *CharacterResponse {
 	cd := CharacterData{Name: name}
 
 	if len(name) <= 3 {
-		out <- &CharacterResponse{&cd, fmt.Errorf("'%s' invalid", name)}
-		return
+		return &CharacterResponse{&cd, fmt.Errorf("'%s' invalid", name)}
 	}
 
 	id, err := fetchCharacterId(name)
 	if err != nil {
-		out <- &CharacterResponse{&cd, fmt.Errorf("'%s' not found", name)}
-		return
+		return &CharacterResponse{&cd, fmt.Errorf("'%s' not found", name)}
 	}
 
 	cd.CharacterId = id
 
 	ch := make(chan *CharacterResponse)
 
-	go fetchCCPRecord(id, ch)
-	go fetchZKillRecord(id, ch)
-	go fetchCorpStartDate(id, ch)
-
-	if err := handleChannelMerges(3, &cd, ch); err != nil {
-		out <- &CharacterResponse{&cd, err}
-		return
-	}
-
-	go fetchCorpDanger(cd.CorpId, ch)
-	go fetchAllianceName(cd.AllianceId, ch)
-	go fetchCorporationName(cd.CorpId, ch)
-
-	outstanding := 3
-	if cd.HasKillboard {
-		go fetchLastKillActivity(id, ch)
-		outstanding++
-	}
+	outstanding := 0
+	fetchData(ch, fetchCCPRecord, id, &outstanding)
+	fetchData(ch, fetchZKillRecord, id, &outstanding)
+	fetchData(ch, fetchCorpStartDate, id, &outstanding)
 
 	if err := handleChannelMerges(outstanding, &cd, ch); err != nil {
-		out <- &CharacterResponse{&cd, err}
-		return
+		return &CharacterResponse{&cd, err}
+	}
+
+	outstanding = 0
+	fetchData(ch, fetchCorpDanger, cd.CorpId, &outstanding)
+	fetchData(ch, fetchAllianceName, cd.AllianceId, &outstanding)
+	fetchData(ch, fetchCorporationName, cd.CorpId, &outstanding)
+
+	if cd.HasKillboard {
+		fetchData(ch, fetchLastKillActivity, id, &outstanding)
 	}
 
 	if cd.Kills != 0 {
-		go fetchKillHistory(id, ch)
-		go fetchRecentKillHistory(id, ch)
-
-		if err := handleChannelMerges(2, &cd, ch); err != nil {
-			out <- &CharacterResponse{&cd, err}
-			return
-		}
+		fetchData(ch, fetchKillHistory, id, &outstanding)
+		fetchData(ch, fetchRecentKillHistory, id, &outstanding)
 	}
 
-	out <- &CharacterResponse{&cd, nil}
+	if err := handleChannelMerges(outstanding, &cd, ch); err != nil {
+		return &CharacterResponse{&cd, err}
+	}
+
+	return &CharacterResponse{&cd, nil}
 }
 
 func handleChannelMerges(num int, cd *CharacterData, ch chan *CharacterResponse) error {
@@ -134,13 +125,19 @@ func handleChannelMerges(num int, cd *CharacterData, ch chan *CharacterResponse)
 	return nil
 }
 
-func fetchCCPRecord(id int, ch chan *CharacterResponse) {
+func fetchData(ch chan *CharacterResponse, f func(int) *CharacterResponse, id int, count *int) {
+	*count++
+	go func() {
+		ch <- f(id)
+	}()
+}
+
+func fetchCCPRecord(id int) *CharacterResponse {
 	cd := CharacterData{}
 
 	ccpRec, err := fetchCharacterJson(id)
 	if err != nil {
-		ch <- &CharacterResponse{&cd, fmt.Errorf("error fetching %d", id)}
-		return
+		return &CharacterResponse{&cd, fmt.Errorf("error fetching %d", id)}
 	}
 
 	type CCPResponse struct {
@@ -154,8 +151,7 @@ func fetchCCPRecord(id int, ch chan *CharacterResponse) {
 
 	err = json.Unmarshal([]byte(ccpRec), &cr)
 	if err != nil {
-		ch <- &CharacterResponse{&cd, fmt.Errorf("error fetching %d", id)}
-		return
+		return &CharacterResponse{&cd, fmt.Errorf("error fetching %d", id)}
 	}
 
 	cd.Age = secondsToTimeString(secondsSince(cr.Birthday))
@@ -164,16 +160,15 @@ func fetchCCPRecord(id int, ch chan *CharacterResponse) {
 	cd.IsNpcCorp = cd.CorpId < 2000000
 	cd.AllianceId = cr.AllianceId
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
-func fetchZKillRecord(id int, ch chan *CharacterResponse) {
+func fetchZKillRecord(id int) *CharacterResponse {
 	cd := CharacterData{}
 
 	zkillRec, err := fetchZKillJson(id)
 	if err != nil {
-		ch <- &CharacterResponse{&cd, fmt.Errorf("error fetching zkill %d", id)}
-		return
+		return &CharacterResponse{&cd, fmt.Errorf("error fetching zkill %d", id)}
 	}
 
 	type ZKillResponse struct {
@@ -186,8 +181,7 @@ func fetchZKillRecord(id int, ch chan *CharacterResponse) {
 
 	err = json.Unmarshal([]byte(zkillRec), &zr)
 	if err != nil {
-		ch <- &CharacterResponse{&cd, fmt.Errorf("error unmarshaling zkill record for %d", id)}
-		return
+		return &CharacterResponse{&cd, fmt.Errorf("error unmarshaling zkill record for %d", id)}
 	}
 
 	cd.Danger = zr.Danger
@@ -196,7 +190,7 @@ func fetchZKillRecord(id int, ch chan *CharacterResponse) {
 	cd.Losses = zr.Losses
 	cd.HasKillboard = (cd.Kills != 0) || (cd.Losses != 0)
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
 func fetchUrl(url string, params map[string]string) ([]byte, error) {
@@ -301,7 +295,7 @@ func fetchCharacterId(name string) (int, error) {
 	return cid, nil
 }
 
-func fetchCorporationName(id int, ch chan *CharacterResponse) {
+func fetchCorporationName(id int) *CharacterResponse {
 	cd := CharacterData{CorpName: ""}
 
 	ids := fmt.Sprint(id)
@@ -322,28 +316,25 @@ func fetchCorporationName(id int, ch chan *CharacterResponse) {
 		entries := make([]CorpEntry, 0)
 		err := json.Unmarshal(json_payload, &entries)
 		if err != nil {
-			ch <- &CharacterResponse{&cd, err}
-			return
+			return &CharacterResponse{&cd, err}
 		}
 
 		if len(entries) == 0 {
-			ch <- &CharacterResponse{&cd, fmt.Errorf("invalid corporation id %s", ids)}
-			return
+			return &CharacterResponse{&cd, fmt.Errorf("invalid corporation id %s", ids)}
 		}
 
 		cd.CorpName = entries[0].CorporationName
 		ccpCache.Set(ids, cd.CorpName, cache.NoExpiration)
 	}
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
-func fetchAllianceName(id int, ch chan *CharacterResponse) {
+func fetchAllianceName(id int) *CharacterResponse {
 	cd := CharacterData{AllianceName: ""}
 
 	if id == 0 {
-		ch <- &CharacterResponse{&cd, nil}
-		return
+		return &CharacterResponse{&cd, nil}
 	}
 
 	ids := fmt.Sprint(id)
@@ -364,23 +355,21 @@ func fetchAllianceName(id int, ch chan *CharacterResponse) {
 		entries := make([]AllianceEntry, 0)
 		err := json.Unmarshal(json_payload, &entries)
 		if err != nil {
-			ch <- &CharacterResponse{&cd, err}
-			return
+			return &CharacterResponse{&cd, err}
 		}
 
 		if len(entries) == 0 {
-			ch <- &CharacterResponse{&cd, fmt.Errorf("invalid alliance id %s", ids)}
-			return
+			return &CharacterResponse{&cd, fmt.Errorf("invalid alliance id %s", ids)}
 		}
 
 		cd.AllianceName = entries[0].AllianceName
 		ccpCache.Set(ids, cd.AllianceName, cache.NoExpiration)
 	}
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
-func fetchCorpStartDate(id int, ch chan *CharacterResponse) {
+func fetchCorpStartDate(id int) *CharacterResponse {
 	cd := CharacterData{CorpAge: 0}
 
 	ids := fmt.Sprint(id)
@@ -397,21 +386,19 @@ func fetchCorpStartDate(id int, ch chan *CharacterResponse) {
 	entries := make([]CorporationEntry, 0)
 	err := json.Unmarshal(json_payload, &entries)
 	if err != nil {
-		ch <- &CharacterResponse{&cd, err}
-		return
+		return &CharacterResponse{&cd, err}
 	}
 
 	if len(entries) == 0 {
-		ch <- &CharacterResponse{&cd, fmt.Errorf("invalid character id %s", ids)}
-		return
+		return &CharacterResponse{&cd, fmt.Errorf("invalid character id %s", ids)}
 	}
 
 	cd.CorpAge = daysSince(entries[0].StartDate)
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
-func fetchCorpDanger(id int, ch chan *CharacterResponse) {
+func fetchCorpDanger(id int) *CharacterResponse {
 	cd := CharacterData{CorpDanger: 0}
 
 	ids := fmt.Sprint(id)
@@ -428,18 +415,17 @@ func fetchCorpDanger(id int, ch chan *CharacterResponse) {
 
 		err := json.Unmarshal(json_payload, &z)
 		if err != nil {
-			ch <- &CharacterResponse{&cd, err}
-			return
+			return &CharacterResponse{&cd, err}
 		}
 
 		cd.CorpDanger = z.Danger
 		zkillCache.Set(ids, cd.CorpDanger, cache.DefaultExpiration)
 	}
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
-func fetchLastKillActivity(id int, ch chan *CharacterResponse) {
+func fetchLastKillActivity(id int) *CharacterResponse {
 	cd := CharacterData{LastKill: ""}
 
 	ids := fmt.Sprint(id)
@@ -448,13 +434,11 @@ func fetchLastKillActivity(id int, ch chan *CharacterResponse) {
 	entries := make([]KillMail, 0)
 	err := json.Unmarshal(json_payload, &entries)
 	if err != nil {
-		ch <- &CharacterResponse{&cd, err}
-		return
+		return &CharacterResponse{&cd, err}
 	}
 
 	if len(entries) == 0 {
-		ch <- &CharacterResponse{&cd, err}
-		return
+		return &CharacterResponse{&cd, err}
 	}
 
 	when := getDate(entries[0].KillMailTime)
@@ -467,10 +451,10 @@ func fetchLastKillActivity(id int, ch chan *CharacterResponse) {
 	}
 	cd.LastKill = what + " " + when
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
-func fetchKillHistory(id int, ch chan *CharacterResponse) {
+func fetchKillHistory(id int) *CharacterResponse {
 	cd := CharacterData{RecentExplorerTotal: 0, RecentKillTotal: 0, LastKillTime: ""}
 
 	ids := fmt.Sprint(id)
@@ -479,13 +463,11 @@ func fetchKillHistory(id int, ch chan *CharacterResponse) {
 	entries := make([]KillMail, 0)
 	err := json.Unmarshal(json_payload, &entries)
 	if err != nil {
-		ch <- &CharacterResponse{&cd, err}
-		return
+		return &CharacterResponse{&cd, err}
 	}
 
 	if len(entries) == 0 {
-		ch <- &CharacterResponse{&cd, err}
-		return
+		return &CharacterResponse{&cd, err}
 	}
 
 	explorerShips := map[int]bool{
@@ -503,10 +485,10 @@ func fetchKillHistory(id int, ch chan *CharacterResponse) {
 	cd.RecentKillTotal = len(entries)
 	cd.LastKillTime = getDate(entries[len(entries)-1].KillMailTime)
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
-func fetchRecentKillHistory(id int, ch chan *CharacterResponse) {
+func fetchRecentKillHistory(id int) *CharacterResponse {
 	cd := CharacterData{KillsLastWeek: 0}
 
 	ids := fmt.Sprint(id)
@@ -515,12 +497,11 @@ func fetchRecentKillHistory(id int, ch chan *CharacterResponse) {
 	entries := make([]KillMail, 0)
 	err := json.Unmarshal(json_payload, &entries)
 	if err != nil {
-		ch <- &CharacterResponse{&cd, err}
-		return
+		return &CharacterResponse{&cd, err}
 	}
 	cd.KillsLastWeek = len(entries)
 
-	ch <- &CharacterResponse{&cd, nil}
+	return &CharacterResponse{&cd, nil}
 }
 
 const (
