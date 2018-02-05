@@ -62,11 +62,11 @@ const (
 )
 
 var (
-	ccpCache   = cache.New(60*time.Minute, 10*time.Minute)
-	zkillCache = cache.New(60*time.Minute, 10*time.Minute)
-	nicknames  = map[string]string{"Mynxee": "Space Mom", "Portia Tigana": "Tiggs"}
+	ccpCache       = cache.New(60*time.Minute, 10*time.Minute)
+	zkillCache     = cache.New(60*time.Minute, 10*time.Minute)
+	nicknames      = map[string]string{"Mynxee": "Space Mom", "Portia Tigana": "Tiggs"}
 	localTransport = &http.Transport{DisableKeepAlives: true}
-	localClient = &http.Client{Transport: localTransport}
+	localClient    = &http.Client{Transport: localTransport}
 )
 
 func fetchCharacterData(name string) *CharacterResponse {
