@@ -65,6 +65,8 @@ var (
 	ccpCache   = cache.New(60*time.Minute, 10*time.Minute)
 	zkillCache = cache.New(60*time.Minute, 10*time.Minute)
 	nicknames  = map[string]string{"Mynxee": "Space Mom", "Portia Tigana": "Tiggs"}
+	localTransport = &http.Transport{DisableKeepAlives: true}
+	localClient = &http.Client{Transport: localTransport}
 )
 
 func fetchCharacterData(name string) *CharacterResponse {
@@ -204,7 +206,6 @@ func fetchZKillRecord(id int) *CharacterResponse {
 }
 
 func fetchUrl(url string, params map[string]string) ([]byte, error) {
-	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("User-Agent", userAgent)
@@ -217,7 +218,7 @@ func fetchUrl(url string, params map[string]string) ([]byte, error) {
 		req.URL.RawQuery = q.Encode()
 	}
 
-	resp, err := client.Do(req)
+	resp, err := localClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
