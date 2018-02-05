@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 
@@ -34,6 +37,9 @@ type CharacterData struct {
 	RecentKillTotal     int     `json:"recent_kill_total"`
 	LastKillTime        string  `json:"last_kill_time"`
 	KillsLastWeek       int     `json:"kills_last_week"`
+	FavoriteShipId      int     `json:"favorite_ship_id"`
+	FavoriteShipCount   int     `json:"favorite_ship_count"`
+	FavoriteShipName    string  `json:"favorite_ship_name"`
 }
 
 type CharacterResponse struct {
@@ -41,14 +47,17 @@ type CharacterResponse struct {
 	err  error
 }
 
-type VictimStruct struct {
-	CharacterId int `json:"character_id"`
-	ShipTypeId  int `json:"ship_type_id"`
+type ZKillCharInfo struct {
+	CharacterId   int `json:"character_id"`
+	CorporationId int `json:"corporation_id"`
+	AllianceId    int `json:"alliance_id"`
+	ShipTypeId    int `json:"ship_type_id"`
 }
 
 type KillMail struct {
-	Victim       VictimStruct `json:"victim"`
-	KillMailTime string       `json:"killmail_time"`
+	Time      string          `json:"killmail_time"`
+	Victim    ZKillCharInfo   `json:"victim"`
+	Attackers []ZKillCharInfo `json:"attackers"`
 }
 
 type KillMailList struct {
@@ -62,9 +71,11 @@ const (
 )
 
 var (
-	ccpCache       = cache.New(60*time.Minute, 10*time.Minute)
-	zkillCache     = cache.New(60*time.Minute, 10*time.Minute)
-	nicknames      = map[string]string{"Mynxee": "Space Mom", "Portia Tigana": "Tiggs"}
+	ccpCache   = cache.New(60*time.Minute, 10*time.Minute)
+	zkillCache = cache.New(60*time.Minute, 10*time.Minute)
+	nicknames  = map[string]string{
+		"Mynxee":        "Space Mom",
+		"Portia Tigana": "Tiggs"}
 	localTransport = &http.Transport{DisableKeepAlives: true}
 	localClient    = &http.Client{Transport: localTransport}
 )
@@ -127,6 +138,19 @@ func fetchCharacterData(name string) *CharacterResponse {
 		return &CharacterResponse{&cd, err}
 	}
 
+	if cd.FavoriteShipId != 0 {
+		ch = make(chan *CharacterResponse, 1)
+
+		fetcher(fetchItemName, cd.FavoriteShipId)
+
+		wg.Wait()
+		close(ch)
+
+		if err := handleMerges(&cd, ch); err != nil {
+			return &CharacterResponse{&cd, err}
+		}
+	}
+
 	if n, ok := nicknames[name]; ok {
 		cd.Name = n
 	}
@@ -149,7 +173,7 @@ func fetchCCPRecord(id int) *CharacterResponse {
 
 	ccpRec, err := fetchCharacterJson(id)
 	if err != nil {
-		return &CharacterResponse{&cd, fmt.Errorf("error fetching %d", id)}
+		return &CharacterResponse{&cd, err}
 	}
 
 	type CCPResponse struct {
@@ -161,9 +185,8 @@ func fetchCCPRecord(id int) *CharacterResponse {
 	}
 	var cr CCPResponse
 
-	err = json.Unmarshal([]byte(ccpRec), &cr)
-	if err != nil {
-		return &CharacterResponse{&cd, fmt.Errorf("error fetching %d", id)}
+	if err = json.Unmarshal([]byte(ccpRec), &cr); err != nil {
+		return &CharacterResponse{&cd, err}
 	}
 
 	cd.Age = secondsToTimeString(secondsSince(cr.Birthday))
@@ -180,7 +203,7 @@ func fetchZKillRecord(id int) *CharacterResponse {
 
 	zkillRec, err := fetchZKillJson(id)
 	if err != nil {
-		return &CharacterResponse{&cd, fmt.Errorf("error fetching zkill %d", id)}
+		return &CharacterResponse{&cd, err}
 	}
 
 	type ZKillResponse struct {
@@ -191,9 +214,8 @@ func fetchZKillRecord(id int) *CharacterResponse {
 	}
 	var zr ZKillResponse
 
-	err = json.Unmarshal([]byte(zkillRec), &zr)
-	if err != nil {
-		return &CharacterResponse{&cd, fmt.Errorf("error unmarshaling zkill record for %d", id)}
+	if err = json.Unmarshal([]byte(zkillRec), &zr); err != nil {
+		return &CharacterResponse{&cd, err}
 	}
 
 	cd.Danger = zr.Danger
@@ -205,8 +227,8 @@ func fetchZKillRecord(id int) *CharacterResponse {
 	return &CharacterResponse{&cd, nil}
 }
 
-func fetchUrl(url string, params map[string]string) ([]byte, error) {
-	req, _ := http.NewRequest("GET", url, nil)
+func fetchUrl(method, url string, params map[string]string, body io.Reader) ([]byte, error) {
+	req, _ := http.NewRequest(method, url, body)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("User-Agent", userAgent)
 
@@ -236,12 +258,16 @@ func fetchUrl(url string, params map[string]string) ([]byte, error) {
 	return resp_body, nil
 }
 
-func ccpFetch(url string, params map[string]string) ([]byte, error) {
-	return fetchUrl(ccpEsiURL+url, params)
+func ccpGet(url string, params map[string]string) ([]byte, error) {
+	return fetchUrl("GET", ccpEsiURL+url, params, nil)
 }
 
-func zkillFetch(url string) ([]byte, error) {
-	return fetchUrl(zkillApiURL+url, nil)
+func ccpPost(url string, params map[string]string, body io.Reader) ([]byte, error) {
+	return fetchUrl("POST", ccpEsiURL+url, params, body)
+}
+
+func zkillGet(url string) ([]byte, error) {
+	return fetchUrl("GET", zkillApiURL+url, nil, nil)
 }
 
 func fetchCharacterJson(id int) (string, error) {
@@ -251,7 +277,7 @@ func fetchCharacterJson(id int) (string, error) {
 		return rec.(string), nil
 	}
 
-	json_payload, _ := ccpFetch("characters/"+ids+"/", nil)
+	json_payload, _ := ccpGet("characters/"+ids+"/", nil)
 	ccpCache.Set(ids, string(json_payload), cache.DefaultExpiration)
 	return string(json_payload), nil
 }
@@ -263,7 +289,7 @@ func fetchZKillJson(id int) (string, error) {
 		return rec.(string), nil
 	}
 
-	json_payload, _ := zkillFetch("stats/characterID/" + ids + "/")
+	json_payload, _ := zkillGet("stats/characterID/" + ids + "/")
 	zkillCache.Set(ids, string(json_payload), cache.DefaultExpiration)
 	return string(json_payload), nil
 }
@@ -274,15 +300,19 @@ func fetchCharacterId(name string) (int, error) {
 		return id.(int), nil
 	}
 
-	json_payload, _ := ccpFetch("search/", map[string]string{"categories": "character", "search": name, "strict": "true"})
+	json_payload, _ := ccpGet(
+		"search/",
+		map[string]string{
+			"categories": "character",
+			"search":     name,
+			"strict":     "true"})
 
 	type Response struct {
 		Character []int `json:"character"`
 	}
 	var f Response
 
-	err := json.Unmarshal(json_payload, &f)
-	if err != nil {
+	if err := json.Unmarshal(json_payload, &f); err != nil {
 		return 0, err
 	}
 
@@ -338,75 +368,71 @@ func fetchMultipleIds(name string, ids []int) int {
 }
 
 func fetchCorporationName(id int) *CharacterResponse {
-	cd := CharacterData{CorpName: ""}
-
 	ids := fmt.Sprint(id)
+
 	name, found := ccpCache.Get(ids)
 	if found {
-		cd.CorpName = name.(string)
-	} else {
-		json_payload, _ := ccpFetch("corporations/names/", map[string]string{"corporation_ids": ids})
-
-		type CorpEntry struct {
-			CorporationName string `json:"corporation_name"`
-			CorporationId   int    `json:"corporation_id"`
-		}
-		type Response struct {
-			Entries []CorpEntry
-		}
-
-		entries := make([]CorpEntry, 0)
-		err := json.Unmarshal(json_payload, &entries)
-		if err != nil {
-			return &CharacterResponse{&cd, err}
-		}
-
-		if len(entries) == 0 {
-			return &CharacterResponse{&cd, fmt.Errorf("invalid corporation id %s", ids)}
-		}
-
-		cd.CorpName = entries[0].CorporationName
-		ccpCache.Set(ids, cd.CorpName, cache.NoExpiration)
+		return &CharacterResponse{&CharacterData{CorpName: name.(string)}, nil}
 	}
+
+	cd := CharacterData{CorpName: ""}
+
+	json_payload, _ := ccpGet("corporations/names/", map[string]string{"corporation_ids": ids})
+
+	type CorpEntry struct {
+		CorporationName string `json:"corporation_name"`
+		CorporationId   int    `json:"corporation_id"`
+	}
+
+	entries := make([]CorpEntry, 0)
+
+	if err := json.Unmarshal(json_payload, &entries); err != nil {
+		return &CharacterResponse{&cd, err}
+	}
+
+	if len(entries) == 0 {
+		return &CharacterResponse{&cd, fmt.Errorf("invalid corporation id %s", ids)}
+	}
+
+	cd.CorpName = entries[0].CorporationName
+	ccpCache.Set(ids, cd.CorpName, cache.NoExpiration)
 
 	return &CharacterResponse{&cd, nil}
 }
 
 func fetchAllianceName(id int) *CharacterResponse {
-	cd := CharacterData{AllianceName: ""}
-
 	if id == 0 {
-		return &CharacterResponse{&cd, nil}
+		return &CharacterResponse{&CharacterData{AllianceName: ""}, nil}
 	}
 
 	ids := fmt.Sprint(id)
+
 	name, found := ccpCache.Get(ids)
 	if found {
-		cd.AllianceName = name.(string)
-	} else {
-		json_payload, _ := ccpFetch("alliances/names/", map[string]string{"alliance_ids": ids})
-
-		type AllianceEntry struct {
-			AllianceName string `json:"alliance_name"`
-			AllianceId   int    `json:"alliance_id"`
-		}
-		type Response struct {
-			Entries []AllianceEntry
-		}
-
-		entries := make([]AllianceEntry, 0)
-		err := json.Unmarshal(json_payload, &entries)
-		if err != nil {
-			return &CharacterResponse{&cd, err}
-		}
-
-		if len(entries) == 0 {
-			return &CharacterResponse{&cd, fmt.Errorf("invalid alliance id %s", ids)}
-		}
-
-		cd.AllianceName = entries[0].AllianceName
-		ccpCache.Set(ids, cd.AllianceName, cache.NoExpiration)
+		return &CharacterResponse{&CharacterData{AllianceName: name.(string)}, nil}
 	}
+
+	cd := CharacterData{AllianceName: ""}
+
+	json_payload, _ := ccpGet("alliances/names/", map[string]string{"alliance_ids": ids})
+
+	type AllianceEntry struct {
+		AllianceName string `json:"alliance_name"`
+		AllianceId   int    `json:"alliance_id"`
+	}
+
+	entries := make([]AllianceEntry, 0)
+
+	if err := json.Unmarshal(json_payload, &entries); err != nil {
+		return &CharacterResponse{&cd, err}
+	}
+
+	if len(entries) == 0 {
+		return &CharacterResponse{&cd, fmt.Errorf("invalid alliance id %s", ids)}
+	}
+
+	cd.AllianceName = entries[0].AllianceName
+	ccpCache.Set(ids, cd.AllianceName, cache.NoExpiration)
 
 	return &CharacterResponse{&cd, nil}
 }
@@ -416,18 +442,15 @@ func fetchCorpStartDate(id int) *CharacterResponse {
 
 	ids := fmt.Sprint(id)
 
-	json_payload, _ := ccpFetch("characters/"+ids+"/corporationhistory", nil)
+	json_payload, _ := ccpGet("characters/"+ids+"/corporationhistory", nil)
 
 	type CorporationEntry struct {
 		StartDate string `json:"start_date"`
 	}
-	type Response struct {
-		Entries []CorporationEntry
-	}
 
 	entries := make([]CorporationEntry, 0)
-	err := json.Unmarshal(json_payload, &entries)
-	if err != nil {
+
+	if err := json.Unmarshal(json_payload, &entries); err != nil {
 		return &CharacterResponse{&cd, err}
 	}
 
@@ -440,29 +463,70 @@ func fetchCorpStartDate(id int) *CharacterResponse {
 	return &CharacterResponse{&cd, nil}
 }
 
-func fetchCorpDanger(id int) *CharacterResponse {
-	cd := CharacterData{CorpDanger: 0}
-
+func fetchItemName(id int) *CharacterResponse {
 	ids := fmt.Sprint(id)
+
+	name, found := ccpCache.Get("ship:" + ids)
+	if found {
+		return &CharacterResponse{&CharacterData{FavoriteShipName: name.(string)}, nil}
+	}
+
+	cd := CharacterData{FavoriteShipName: ""}
+
+	id_list := []int{id}
+	js, _ := json.Marshal(id_list)
+
+	json_payload, _ := ccpPost(
+		"universe/names/",
+		map[string]string{"datasource": "tranquility"},
+		bytes.NewBuffer(js))
+
+	type TypeEntry struct {
+		Id       int    `json:"id"`
+		Name     string `json:"name"`
+		Category string `json:"category"`
+	}
+
+	entries := make([]TypeEntry, 0)
+
+	if err := json.Unmarshal(json_payload, &entries); err != nil {
+		return &CharacterResponse{&cd, err}
+	}
+
+	if len(entries) == 0 {
+		return &CharacterResponse{&cd, fmt.Errorf("invalid ship id %s", ids)}
+	}
+
+	cd.FavoriteShipName = entries[0].Name
+
+	ccpCache.Set("ship:"+ids, cd.FavoriteShipName, cache.NoExpiration)
+
+	return &CharacterResponse{&cd, nil}
+}
+
+func fetchCorpDanger(id int) *CharacterResponse {
+	ids := fmt.Sprint(id)
+
 	danger, found := zkillCache.Get(ids)
 	if found {
-		cd.CorpDanger = danger.(int)
-	} else {
-		json_payload, _ := zkillFetch("stats/corporationID/" + ids + "/")
-
-		type ZKillResponse struct {
-			Danger int `json:"dangerRatio"`
-		}
-		var z ZKillResponse
-
-		err := json.Unmarshal(json_payload, &z)
-		if err != nil {
-			return &CharacterResponse{&cd, err}
-		}
-
-		cd.CorpDanger = z.Danger
-		zkillCache.Set(ids, cd.CorpDanger, cache.DefaultExpiration)
+		return &CharacterResponse{&CharacterData{CorpDanger: danger.(int)}, nil}
 	}
+
+	cd := CharacterData{CorpDanger: 0}
+
+	json_payload, _ := zkillGet("stats/corporationID/" + ids + "/")
+
+	type ZKillResponse struct {
+		Danger int `json:"dangerRatio"`
+	}
+	var z ZKillResponse
+
+	if err := json.Unmarshal(json_payload, &z); err != nil {
+		return &CharacterResponse{&cd, err}
+	}
+
+	cd.CorpDanger = z.Danger
+	zkillCache.Set(ids, cd.CorpDanger, cache.DefaultExpiration)
 
 	return &CharacterResponse{&cd, nil}
 }
@@ -471,19 +535,19 @@ func fetchLastKillActivity(id int) *CharacterResponse {
 	cd := CharacterData{LastKill: ""}
 
 	ids := fmt.Sprint(id)
-	json_payload, _ := zkillFetch("api/characterID/" + ids + "/limit/1/")
+	json_payload, _ := zkillGet("api/characterID/" + ids + "/limit/1/")
 
 	entries := make([]KillMail, 0)
-	err := json.Unmarshal(json_payload, &entries)
-	if err != nil {
+
+	if err := json.Unmarshal(json_payload, &entries); err != nil {
 		return &CharacterResponse{&cd, err}
 	}
 
 	if len(entries) == 0 {
-		return &CharacterResponse{&cd, err}
+		return &CharacterResponse{&cd, fmt.Errorf("no kills for id %s", ids)}
 	}
 
-	when := getDate(entries[0].KillMailTime)
+	when := getDate(entries[0].Time)
 	who := entries[0].Victim.CharacterId
 	what := "kill"
 	if who == id {
@@ -500,30 +564,59 @@ func fetchKillHistory(id int) *CharacterResponse {
 	cd := CharacterData{RecentExplorerTotal: 0, RecentKillTotal: 0, LastKillTime: ""}
 
 	ids := fmt.Sprint(id)
-	json_payload, _ := zkillFetch("api/kills/characterID/" + ids + "/")
+	json_payload, _ := zkillGet("api/kills/characterID/" + ids + "/")
 
 	entries := make([]KillMail, 0)
-	err := json.Unmarshal(json_payload, &entries)
-	if err != nil {
+
+	if err := json.Unmarshal(json_payload, &entries); err != nil {
 		return &CharacterResponse{&cd, err}
 	}
 
 	if len(entries) == 0 {
-		return &CharacterResponse{&cd, err}
+		return &CharacterResponse{&cd, fmt.Errorf("no kills for id %s", ids)}
 	}
 
-	explorerShips := map[int]bool{29248: true, 11188: true, 11192: true, 605: true, 11172: true, 607: true, 11182: true, 586: true, 33468: true, 33470: true}
+	explorerShips := map[int]bool{
+		29248: true, 11188: true, 11192: true,
+		605: true, 11172: true, 607: true,
+		11182: true, 586: true, 33468: true, 33470: true}
 
 	explorerTotal := 0
+	ship_freq := make(map[int]int)
 	for _, k := range entries {
 		if explorerShips[k.Victim.ShipTypeId] {
 			explorerTotal++
 		}
+		for _, attacker := range k.Attackers {
+			if attacker.CharacterId == id {
+				if _, ok := ship_freq[attacker.ShipTypeId]; ok {
+					ship_freq[attacker.ShipTypeId] += 1
+				} else {
+					ship_freq[attacker.ShipTypeId] = 1
+				}
+			}
+		}
 	}
+
+	// sort the ships by freq
+	hack := map[int]int{}
+	hackkeys := []int{}
+	for key, val := range ship_freq {
+		hack[val] = key
+		hackkeys = append(hackkeys, val)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(hackkeys)))
+
+	// for _, val := range hackkeys {
+	// 	fmt.Println("ship", hack[val], "times", val)
+	// }
+	// fmt.Println("favorite ship type", hack[hackkeys[0]], "used", hackkeys[0], "times")
 
 	cd.RecentExplorerTotal = explorerTotal
 	cd.RecentKillTotal = len(entries)
-	cd.LastKillTime = getDate(entries[len(entries)-1].KillMailTime)
+	cd.LastKillTime = getDate(entries[len(entries)-1].Time)
+	cd.FavoriteShipId = hack[hackkeys[0]]
+	cd.FavoriteShipCount = hackkeys[0]
 
 	return &CharacterResponse{&cd, nil}
 }
@@ -532,11 +625,11 @@ func fetchRecentKillHistory(id int) *CharacterResponse {
 	cd := CharacterData{KillsLastWeek: 0}
 
 	ids := fmt.Sprint(id)
-	json_payload, _ := zkillFetch("api/kills/characterID/" + ids + "/pastSeconds/604800/")
+	json_payload, _ := zkillGet("api/kills/characterID/" + ids + "/pastSeconds/" + fmt.Sprint(SecondsInWeek) + "/")
 
 	entries := make([]KillMail, 0)
-	err := json.Unmarshal(json_payload, &entries)
-	if err != nil {
+
+	if err := json.Unmarshal(json_payload, &entries); err != nil {
 		return &CharacterResponse{&cd, err}
 	}
 	cd.KillsLastWeek = len(entries)
