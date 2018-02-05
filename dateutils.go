@@ -10,6 +10,7 @@ const (
 	SecondsInMinute = 60
 	SecondsInHour   = 60 * SecondsInMinute
 	SecondsInDay    = 24 * SecondsInHour
+	SecondsInWeek   = 7 * SecondsInDay
 	SecondsInMonth  = 30 * SecondsInDay
 	SecondsInYear   = 365 * SecondsInDay
 )
