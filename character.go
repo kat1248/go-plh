@@ -223,7 +223,10 @@ func fetchUrl(url string, params map[string]string) ([]byte, error) {
 	}
 
 	defer resp.Body.Close()
-	resp_body, _ := ioutil.ReadAll(resp.Body)
+	resp_body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("http error %d", resp.StatusCode)
