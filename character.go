@@ -269,6 +269,7 @@ func zkillGet(url string) ([]byte, error) {
 
 func fetchCharacterJson(id int) (string, error) {
 	ids := fmt.Sprint(id)
+
 	rec, found := ccpCache.Get(ids)
 	if found {
 		return rec.(string), nil
@@ -281,6 +282,7 @@ func fetchCharacterJson(id int) (string, error) {
 
 func fetchZKillJson(id int) (string, error) {
 	ids := fmt.Sprint(id)
+
 	rec, found := zkillCache.Get(ids)
 	if found {
 		return rec.(string), nil
@@ -314,11 +316,12 @@ func fetchCharacterId(name string) (int, error) {
 	}
 
 	cid := 0
-	if len(f.Character) == 0 {
+	switch len(f.Character) {
+	case 0:
 		return cid, fmt.Errorf("invalid character name %s", name)
-	} else if len(f.Character) == 1 {
+	case 1:
 		cid = f.Character[0]
-	} else {
+	default:
 		cid = fetchMultipleIds(name, f.Character)
 	}
 
@@ -532,6 +535,7 @@ func fetchLastKillActivity(id int) *CharacterResponse {
 	cd := CharacterData{LastKill: ""}
 
 	ids := fmt.Sprint(id)
+
 	json_payload, _ := zkillGet("api/characterID/" + ids + "/limit/1/")
 
 	entries := make([]KillMail, 0)
@@ -546,12 +550,17 @@ func fetchLastKillActivity(id int) *CharacterResponse {
 
 	when := getDate(entries[0].Time)
 	who := entries[0].Victim.CharacterId
-	what := "kill"
-	if who == id {
+
+	var what string
+	switch {
+	case who == id:
 		what = "died"
-	} else if who == 0 {
+	case who == 0:
 		what = "struct"
+	default:
+		what = "kill"
 	}
+
 	cd.LastKill = what + " " + when
 
 	return &CharacterResponse{&cd, nil}
@@ -561,6 +570,7 @@ func fetchKillHistory(id int) *CharacterResponse {
 	cd := CharacterData{RecentExplorerTotal: 0, RecentKillTotal: 0, LastKillTime: ""}
 
 	ids := fmt.Sprint(id)
+
 	json_payload, _ := zkillGet("api/kills/characterID/" + ids + "/")
 
 	entries := make([]KillMail, 0)
@@ -622,6 +632,7 @@ func fetchRecentKillHistory(id int) *CharacterResponse {
 	cd := CharacterData{KillsLastWeek: 0}
 
 	ids := fmt.Sprint(id)
+
 	json_payload, _ := zkillGet("api/kills/characterID/" + ids + "/pastSeconds/" + fmt.Sprint(SecondsInWeek) + "/")
 
 	entries := make([]KillMail, 0)
