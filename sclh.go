@@ -58,7 +58,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	names := strings.Split(r.FormValue("characters"), "\n")
 
 	defer func(start time.Time, num int) {
-		elapsed := time.Since(start)
+		elapsed := time.Since(start).Seconds()
 		log.WithFields(log.Fields{
 			"count":   num,
 			"elapsed": elapsed,
