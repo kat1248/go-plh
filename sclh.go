@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -42,6 +43,11 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 func serveData(w http.ResponseWriter, r *http.Request) {
 	names := strings.Split(r.FormValue("characters"), "\n")
+	defer func(start time.Time, num int) {
+		elapsed := time.Since(start)
+		log.Println("Handled", num, "names in", elapsed)
+	}(time.Now(), len(names))
+
 	profiles := make([]CharacterData, 0)
 	ch := make(chan *CharacterResponse, len(names))
 	var wg sync.WaitGroup
@@ -73,8 +79,6 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
-
-	log.Println("Handled", fmt.Sprint(len(profiles)), "names")
 }
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
