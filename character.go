@@ -15,6 +15,7 @@ import (
 	cache "github.com/patrickmn/go-cache"
 )
 
+// output data type, this is what is sent to the webpage to represent a character
 type CharacterData struct {
 	Name                string  `json:"name"`
 	CharacterId         int     `json:"character_id"`
@@ -81,7 +82,7 @@ func fetchCharacterData(name string) *CharacterResponse {
 	cd := CharacterData{Name: name}
 
 	if len(name) <= 3 {
-		return &CharacterResponse{&cd, fmt.Errorf("'%s' invalid", name)}
+		return &CharacterResponse{&cd, fmt.Errorf("'%s' invalid character name", name)}
 	}
 
 	id, err := fetchCharacterId(name)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -14,13 +13,27 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func main() {
-	var port int
+var (
+	port      int  // which port to listen on
+	debugMode bool // are we in debug mode
+)
+
+func init() {
 	flag.IntVar(&port, "port", 80, "port to listen on")
+	flag.BoolVar(&debugMode, "debug", false, "debug mode switch")
 	flag.Parse()
 
+	// log.SetFormatter(&log.JSONFormatter{})
+	if debugMode {
+		log.SetOutput(os.Stdout)
+	}
+}
+
+func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/info", serveData)
 	http.HandleFunc("/", defaultHandler)
@@ -46,7 +59,10 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 
 	defer func(start time.Time, num int) {
 		elapsed := time.Since(start)
-		log.Println("Handled", num, "names in", elapsed)
+		log.WithFields(log.Fields{
+			"count":   num,
+			"elapsed": elapsed,
+		}).Info("Handled request")
 	}(time.Now(), len(names))
 
 	profiles := make([]CharacterData, 0)
@@ -68,12 +84,13 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		if r.err == nil {
 			profiles = append(profiles, *r.char)
 		} else {
-			log.Println("error:", r.err)
+			log.Error(r.err)
 		}
 	}
 
 	js, err := json.Marshal(profiles)
 	if err != nil {
+		log.Error(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -104,14 +121,14 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles(lp, fp)
 	if err != nil {
 		// Log the detailed error
-		log.Println(err.Error())
+		log.Error(err.Error())
 		// Return a generic "Internal Server Error" message
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", nil); err != nil {
-		log.Println(err.Error())
+		log.Error(err.Error())
 		http.Error(w, http.StatusText(500), 500)
 	}
 }
