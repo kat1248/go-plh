@@ -43,6 +43,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 func serveData(w http.ResponseWriter, r *http.Request) {
 	names := strings.Split(r.FormValue("characters"), "\n")
+
 	defer func(start time.Time, num int) {
 		elapsed := time.Since(start)
 		log.Println("Handled", num, "names in", elapsed)
