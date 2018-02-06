@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/imdario/mergo"
-	"github.com/patrickmn/go-cache"
+	cache "github.com/patrickmn/go-cache"
 )
 
 type CharacterData struct {
@@ -60,14 +60,11 @@ type KillMail struct {
 	Attackers []ZKillCharInfo `json:"attackers"`
 }
 
-type KillMailList struct {
-	KillMails []KillMail
-}
-
 const (
-	ccpEsiURL   = "https://esi.tech.ccp.is/latest/"
-	zkillApiURL = "https://zkillboard.com/api/"
-	userAgent   = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
+	ccpEsiURL           = "https://esi.tech.ccp.is/latest/"
+	zkillApiURL         = "https://zkillboard.com/api/"
+	userAgent           = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
+	computeFavoriteShip = false
 )
 
 var (
@@ -138,7 +135,7 @@ func fetchCharacterData(name string) *CharacterResponse {
 		return &CharacterResponse{&cd, err}
 	}
 
-	if cd.FavoriteShipId != 0 {
+	if computeFavoriteShip && cd.FavoriteShipId != 0 {
 		ch = make(chan *CharacterResponse, 1)
 
 		fetcher(fetchItemName, cd.FavoriteShipId)
