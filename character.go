@@ -456,7 +456,7 @@ func fetchCorpStartDate(id int) *CharacterResponse {
 	}
 
 	if len(entries) == 0 {
-		return &CharacterResponse{&cd, fmt.Errorf("invalid character id %s", ids)}
+		return &CharacterResponse{&cd, nil)
 	}
 
 	cd.CorpAge = daysSince(entries[0].StartDate)
