@@ -65,15 +65,15 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		}).Info("Handled request")
 	}(time.Now(), len(names))
 
-	profiles := make([]CharacterData, 0)
-	ch := make(chan *CharacterResponse, len(names))
+	profiles := make([]characterData, 0)
+	ch := make(chan *characterResponse, len(names))
 	var wg sync.WaitGroup
 
 	for _, name := range names {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			ch <- fetchCharacterData(name)
+			ch <- fetchcharacterData(name)
 		}(name)
 	}
 
