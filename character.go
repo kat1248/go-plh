@@ -174,14 +174,14 @@ func fetchCCPRecord(id int) *characterResponse {
 		return &characterResponse{&cd, err}
 	}
 
-	type CCPResponse struct {
+	type ccpResponse struct {
 		Name       string  `json:"name"`
 		CorpId     int     `json:"corporation_id"`
 		AllianceId int     `json:"alliance_id"`
 		Security   float32 `json:"security_status"`
 		Birthday   string  `json:"birthday"`
 	}
-	var cr CCPResponse
+	var cr ccpResponse
 
 	if err = json.Unmarshal([]byte(ccpRec), &cr); err != nil {
 		return &characterResponse{&cd, err}
@@ -204,13 +204,13 @@ func fetchZKillRecord(id int) *characterResponse {
 		return &characterResponse{&cd, err}
 	}
 
-	type ZKillResponse struct {
+	type zKillResponse struct {
 		Danger int `json:"dangerRatio"`
 		Gang   int `json:"gangRatio"`
 		Kills  int `json:"shipsDestroyed"`
 		Losses int `json:"shipsLost"`
 	}
-	var zr ZKillResponse
+	var zr zKillResponse
 
 	if err = json.Unmarshal([]byte(zkillRec), &zr); err != nil {
 		return &characterResponse{&cd, err}
@@ -307,10 +307,10 @@ func fetchCharacterId(name string) (int, error) {
 			"search":     name,
 			"strict":     "true"})
 
-	type Response struct {
+	type charIdResponse struct {
 		Character []int `json:"character"`
 	}
-	var f Response
+	var f charIdResponse
 
 	if err := json.Unmarshal(jsonPayload, &f); err != nil {
 		return 0, err
@@ -333,12 +333,12 @@ func fetchCharacterId(name string) (int, error) {
 func fetchMultipleIds(name string, ids []int) int {
 	cid := 0
 
-	type FetchData struct {
+	type fetchData struct {
 		json string
 		id   int
 	}
 
-	ch := make(chan *FetchData, len(ids))
+	ch := make(chan *fetchData, len(ids))
 	var wg sync.WaitGroup
 
 	for _, v := range ids {
@@ -346,17 +346,17 @@ func fetchMultipleIds(name string, ids []int) int {
 		go func(v int) {
 			defer wg.Done()
 			rec, _ := fetchCharacterJson(v)
-			ch <- &FetchData{json: rec, id: v}
+			ch <- &fetchData{json: rec, id: v}
 		}(v)
 	}
 
 	wg.Wait()
 	close(ch)
 
-	type CCPResponse struct {
+	type ccpResponse struct {
 		Name string `json:"name"`
 	}
-	var cr CCPResponse
+	var cr ccpResponse
 	for r := range ch {
 		_ = json.Unmarshal([]byte(r.json), &cr)
 		if cr.Name == name {
@@ -380,12 +380,12 @@ func fetchCorporationName(id int) *characterResponse {
 
 	jsonPayload, _ := ccpGet("corporations/names/", map[string]string{"corporation_ids": ids})
 
-	type CorpEntry struct {
+	type corpEntry struct {
 		CorporationName string `json:"corporation_name"`
 		CorporationId   int    `json:"corporation_id"`
 	}
 
-	entries := make([]CorpEntry, 0)
+	entries := make([]corpEntry, 0)
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
 		return &characterResponse{&cd, err}
@@ -417,12 +417,12 @@ func fetchAllianceName(id int) *characterResponse {
 
 	jsonPayload, _ := ccpGet("alliances/names/", map[string]string{"alliance_ids": ids})
 
-	type AllianceEntry struct {
+	type allianceEntry struct {
 		AllianceName string `json:"alliance_name"`
 		AllianceId   int    `json:"alliance_id"`
 	}
 
-	entries := make([]AllianceEntry, 0)
+	entries := make([]allianceEntry, 0)
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
 		return &characterResponse{&cd, err}
@@ -445,11 +445,11 @@ func fetchCorpStartDate(id int) *characterResponse {
 
 	jsonPayload, _ := ccpGet("characters/"+ids+"/corporationhistory", nil)
 
-	type CorporationEntry struct {
+	type corporationEntry struct {
 		StartDate string `json:"start_date"`
 	}
 
-	entries := make([]CorporationEntry, 0)
+	entries := make([]corporationEntry, 0)
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
 		return &characterResponse{&cd, err}
@@ -482,13 +482,13 @@ func fetchItemName(id int) *characterResponse {
 		map[string]string{"datasource": "tranquility"},
 		bytes.NewBuffer(js))
 
-	type TypeEntry struct {
+	type typeEntry struct {
 		Id       int    `json:"id"`
 		Name     string `json:"name"`
 		Category string `json:"category"`
 	}
 
-	entries := make([]TypeEntry, 0)
+	entries := make([]typeEntry, 0)
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
 		return &characterResponse{&cd, err}
@@ -517,10 +517,10 @@ func fetchCorpDanger(id int) *characterResponse {
 
 	jsonPayload, _ := zkillGet("stats/corporationID/" + ids + "/")
 
-	type ZKillResponse struct {
+	type zKillResponse struct {
 		Danger int `json:"dangerRatio"`
 	}
-	var z ZKillResponse
+	var z zKillResponse
 
 	if err := json.Unmarshal(jsonPayload, &z); err != nil {
 		return &characterResponse{&cd, err}
