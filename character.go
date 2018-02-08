@@ -81,7 +81,7 @@ var (
 func fetchcharacterData(name string) *characterResponse {
 	cd := characterData{Name: name}
 
-	if len(name) <= 3 {
+	if len(name) < 3 {
 		return &characterResponse{&cd, fmt.Errorf("'%s' invalid character name", name)}
 	}
 
