@@ -17,6 +17,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	maximumNames = 100
+)
+
 var (
 	port      int  // which port to listen on
 	debugMode bool // are we in debug mode
@@ -55,8 +59,8 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveData(w http.ResponseWriter, r *http.Request) {
-	names := strings.Split(r.FormValue("characters"), "\n")
-
+	nameList := strings.Split(r.FormValue("characters"), "\n")
+	names := nameList[0:min(maximumNames, len(nameList))]
 	log.Info("Requested Names [" + strings.Join(names[:], ", ") + "]")
 	defer func(start time.Time, num int) {
 		elapsed := time.Since(start).Seconds()
@@ -132,4 +136,11 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error())
 		http.Error(w, http.StatusText(500), 500)
 	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
