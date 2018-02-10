@@ -78,6 +78,9 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
+			if len(name) < 3 {
+				return
+			}
 			ch <- fetchcharacterData(name)
 		}(name)
 	}
