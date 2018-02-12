@@ -369,7 +369,10 @@ func fetchMultipleIds(name string, ids []int) int {
 	}
 	var cr ccpResponse
 	for r := range ch {
-		_ = json.Unmarshal([]byte(r.json), &cr)
+		err := json.Unmarshal([]byte(r.json), &cr)
+		if err != nil {
+			continue
+		}
 		if cr.Name == name {
 			cid = r.id
 			break
