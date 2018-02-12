@@ -74,8 +74,6 @@ var (
 	nicknames  = map[string]string{
 		"Mynxee":        "Space Mom",
 		"Portia Tigana": "Tiggs"}
-	localTransport = &http.Transport{DisableKeepAlives: true}
-	localClient    = &http.Client{Transport: localTransport}
 )
 
 func fetchcharacterData(name string) *characterResponse {
