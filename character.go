@@ -272,7 +272,10 @@ func fetchCharacterJson(id int) (string, error) {
 		return rec.(string), nil
 	}
 
-	jsonPayload, _ := ccpGet("characters/"+ids+"/", nil)
+	jsonPayload, err := ccpGet("characters/"+ids+"/", nil)
+	if err != nil {
+		return "", err
+	}
 	ccpCache.Set(ids, string(jsonPayload), cache.DefaultExpiration)
 	return string(jsonPayload), nil
 }
@@ -296,12 +299,15 @@ func fetchCharacterId(name string) (int, error) {
 		return id.(int), nil
 	}
 
-	jsonPayload, _ := ccpGet(
+	jsonPayload, err := ccpGet(
 		"search/",
 		map[string]string{
 			"categories": "character",
 			"search":     name,
 			"strict":     "true"})
+	if err != nil {
+		return 0, err
+	}
 
 	type charIdResponse struct {
 		Character []int `json:"character"`
