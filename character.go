@@ -222,7 +222,11 @@ func fetchZKillRecord(id int) *characterResponse {
 }
 
 func fetchUrl(method, url string, params map[string]string, body io.Reader) ([]byte, error) {
-	req, _ := http.NewRequest(method, url, body)
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("User-Agent", userAgent)
 
@@ -288,7 +292,10 @@ func fetchZKillJson(id int) (string, error) {
 		return rec.(string), nil
 	}
 
-	jsonPayload, _ := zkillGet("stats/characterID/" + ids + "/")
+	jsonPayload, err := zkillGet("stats/characterID/" + ids + "/")
+	if err != nil {
+		return "", err
+	}
 	zkillCache.Set(ids, string(jsonPayload), cache.DefaultExpiration)
 	return string(jsonPayload), nil
 }
@@ -334,7 +341,6 @@ func fetchCharacterId(name string) (int, error) {
 
 func fetchMultipleIds(name string, ids []int) int {
 	cid := 0
-
 	type fetchData struct {
 		json string
 		id   int
@@ -347,7 +353,10 @@ func fetchMultipleIds(name string, ids []int) int {
 		wg.Add(1)
 		go func(v int) {
 			defer wg.Done()
-			rec, _ := fetchCharacterJson(v)
+			rec, err := fetchCharacterJson(v)
+			if err != nil {
+				return
+			}
 			ch <- &fetchData{json: rec, id: v}
 		}(v)
 	}
@@ -380,7 +389,10 @@ func fetchCorporationName(id int) *characterResponse {
 
 	cd := characterData{CorpName: ""}
 
-	jsonPayload, _ := ccpGet("corporations/names/", map[string]string{"corporation_ids": ids})
+	jsonPayload, err := ccpGet("corporations/names/", map[string]string{"corporation_ids": ids})
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
 	type corpEntry struct {
 		CorporationName string `json:"corporation_name"`
@@ -417,7 +429,10 @@ func fetchAllianceName(id int) *characterResponse {
 
 	cd := characterData{AllianceName: ""}
 
-	jsonPayload, _ := ccpGet("alliances/names/", map[string]string{"alliance_ids": ids})
+	jsonPayload, err := ccpGet("alliances/names/", map[string]string{"alliance_ids": ids})
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
 	type allianceEntry struct {
 		AllianceName string `json:"alliance_name"`
@@ -445,7 +460,10 @@ func fetchCorpStartDate(id int) *characterResponse {
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, _ := ccpGet("characters/"+ids+"/corporationhistory", nil)
+	jsonPayload, err := ccpGet("characters/"+ids+"/corporationhistory", nil)
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
 	type corporationEntry struct {
 		StartDate string `json:"start_date"`
@@ -477,12 +495,18 @@ func fetchItemName(id int) *characterResponse {
 	cd := characterData{FavoriteShipName: ""}
 
 	idList := []int{id}
-	js, _ := json.Marshal(idList)
+	js, err := json.Marshal(idList)
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
-	jsonPayload, _ := ccpPost(
+	jsonPayload, err := ccpPost(
 		"universe/names/",
 		map[string]string{"datasource": "tranquility"},
 		bytes.NewBuffer(js))
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
 	type typeEntry struct {
 		Id       int    `json:"id"`
@@ -517,7 +541,10 @@ func fetchCorpDanger(id int) *characterResponse {
 
 	cd := characterData{CorpDanger: 0}
 
-	jsonPayload, _ := zkillGet("stats/corporationID/" + ids + "/")
+	jsonPayload, err := zkillGet("stats/corporationID/" + ids + "/")
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
 	type zKillResponse struct {
 		Danger int `json:"dangerRatio"`
@@ -539,7 +566,10 @@ func fetchLastKillActivity(id int) *characterResponse {
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, _ := zkillGet("api/characterID/" + ids + "/limit/1/")
+	jsonPayload, err := zkillGet("api/characterID/" + ids + "/limit/1/")
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
 	entries := make([]killMail, 0)
 
@@ -574,7 +604,10 @@ func fetchKillHistory(id int) *characterResponse {
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, _ := zkillGet("api/kills/characterID/" + ids + "/")
+	jsonPayload, err := zkillGet("api/kills/characterID/" + ids + "/")
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
 	entries := make([]killMail, 0)
 
@@ -636,7 +669,10 @@ func fetchRecentKillHistory(id int) *characterResponse {
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, _ := zkillGet("api/kills/characterID/" + ids + "/pastSeconds/" + fmt.Sprint(SecondsInWeek) + "/")
+	jsonPayload, err := zkillGet("api/kills/characterID/" + ids + "/pastSeconds/" + fmt.Sprint(SecondsInWeek) + "/")
+	if err != nil {
+		return &characterResponse{&cd, err}
+	}
 
 	entries := make([]killMail, 0)
 
