@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"math/rand"
+	//"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sethgrid/pester"
+	//"github.com/sethgrid/pester"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,8 +26,9 @@ const (
 var (
 	port           int  // which port to listen on
 	debugMode      bool // are we in debug mode
-	localClient    *pester.Client
 	localTransport = &http.Transport{DisableKeepAlives: true}
+	localClient    = &http.Client{Transport: localTransport}
+	//localClient    *pester.Client
 )
 
 func init() {
@@ -40,13 +41,13 @@ func init() {
 		log.SetOutput(os.Stdout)
 	}
 
-	rand.Seed(time.Now().Unix())
+	//rand.Seed(time.Now().Unix())
 
-	localClient = pester.New()
-	localClient.Concurrency = 3
-	localClient.MaxRetries = 5
-	localClient.Backoff = pester.ExponentialJitterBackoff
-	localClient.Transport = localTransport
+	//localClient = pester.New()
+	//localClient.Concurrency = 3
+	//localClient.MaxRetries = 5
+	//localClient.Backoff = pester.ExponentialJitterBackoff
+	//localClient.Transport = localTransport
 }
 
 func main() {
