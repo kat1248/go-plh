@@ -14,12 +14,6 @@
   version = "v2.1.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/sethgrid/pester"
-  packages = ["."]
-  revision = "b18953f5db2922a73aaf89652abf7b5ee95cb516"
-
-[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
@@ -43,6 +37,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bd5e25007f479f8058a2892d351fa3aac2f8b597b669196429955f25775643ae"
+  inputs-digest = "bd95c0aca53e99e3777a6c133638e26593858ad9f8ee8b65129c1c243afff8ce"
   solver-name = "gps-cdcl"
   solver-version = 1
