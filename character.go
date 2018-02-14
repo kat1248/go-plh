@@ -104,7 +104,7 @@ func fetchcharacterData(name string) *characterResponse {
 	wg.Wait()
 	close(ch)
 
-	if err := handleMerges(&cd, ch); err != nil {
+	if err := cd.handleMerges(ch); err != nil {
 		return &characterResponse{&cd, err}
 	}
 
@@ -126,7 +126,7 @@ func fetchcharacterData(name string) *characterResponse {
 	wg.Wait()
 	close(ch)
 
-	if err := handleMerges(&cd, ch); err != nil {
+	if err := cd.handleMerges(ch); err != nil {
 		return &characterResponse{&cd, err}
 	}
 
@@ -138,7 +138,7 @@ func fetchcharacterData(name string) *characterResponse {
 		wg.Wait()
 		close(ch)
 
-		if err := handleMerges(&cd, ch); err != nil {
+		if err := cd.handleMerges(ch); err != nil {
 			return &characterResponse{&cd, err}
 		}
 	}
@@ -150,7 +150,7 @@ func fetchcharacterData(name string) *characterResponse {
 	return &characterResponse{&cd, nil}
 }
 
-func handleMerges(cd *characterData, ch chan *characterResponse) error {
+func (cd *characterData) handleMerges(ch chan *characterResponse) error {
 	for r := range ch {
 		if r.err != nil {
 			return r.err
