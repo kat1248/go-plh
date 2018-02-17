@@ -148,7 +148,7 @@ $(document).ready( function () {
       { data: 'is_npc_corp', visible: false },
       { data: 'character_id', visible: false },
     ],
-    info: false,
+    info: true,
     paging: true,
     rowGroup: {
       dataSrc: 'corp_name',

@@ -93,8 +93,8 @@ table.embedded thead td {
     border-bottom: 1px solid #111111;
 }
 body {
-    font-family: 'Lato',sans-serif;
-    /*font-family: static; */
+    /*font-family: 'Lato',sans-serif;*/
+    font-family: static;
     font-size: 14px; 
     background-color: #000; 
     background-image: url('zephyr-wallpaper.jpg');
@@ -111,3 +111,4 @@ form {
     float: left;
     background-color: #1a3d5c;
 }
+
