@@ -69,9 +69,13 @@ td.blank-control {
 td.details-control {
     background: url('details_open.png') no-repeat center center;
     cursor: pointer;
+    height: 32px;
+    width: 32px;
 }
 tr.shown td.details-control {
     background: url('details_close.png') no-repeat center center;
+    height: 32px;
+    width: 32px;
 }
 label {
     color: White;
