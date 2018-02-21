@@ -542,7 +542,7 @@ func fetchLastKillActivity(id int) *characterResponse {
 	var what string
 	switch {
 	case who == id:
-		what = "died"
+		what = "loss"
 	case who == 0:
 		what = "struct"
 	default:
