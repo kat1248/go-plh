@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func fetchUrl(method, url string, params map[string]string, body io.Reader) ([]byte, error) {
+func fetchURL(method, url string, params map[string]string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -43,13 +43,13 @@ func fetchUrl(method, url string, params map[string]string, body io.Reader) ([]b
 }
 
 func ccpGet(url string, params map[string]string) ([]byte, error) {
-	return fetchUrl("GET", ccpEsiURL+url, params, nil)
+	return fetchURL("GET", ccpEsiURL+url, params, nil)
 }
 
 func ccpPost(url string, params map[string]string, body io.Reader) ([]byte, error) {
-	return fetchUrl("POST", ccpEsiURL+url, params, body)
+	return fetchURL("POST", ccpEsiURL+url, params, body)
 }
 
 func zkillGet(url string) ([]byte, error) {
-	return fetchUrl("GET", zkillApiURL+url, nil, nil)
+	return fetchURL("GET", zkillAPIURL+url, nil, nil)
 }

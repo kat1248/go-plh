@@ -7,21 +7,21 @@ import (
 )
 
 const (
-	SecondsInMinute = 60
-	SecondsInHour   = 60 * SecondsInMinute
-	SecondsInDay    = 24 * SecondsInHour
-	SecondsInWeek   = 7 * SecondsInDay
-	SecondsInMonth  = 30 * SecondsInDay
-	SecondsInYear   = 365 * SecondsInDay
+	secondsInMinute = 60
+	secondsInHour   = 60 * secondsInMinute
+	secondsInDay    = 24 * secondsInHour
+	secondsInWeek   = 7 * secondsInDay
+	secondsInMonth  = 30 * secondsInDay
+	secondsInYear   = 365 * secondsInDay
 )
 
 func secondsToTimeString(seconds float64) string {
 	s := int(seconds)
-	years := s / SecondsInYear
-	s -= years * SecondsInYear
-	months := s / SecondsInMonth
-	s -= months * SecondsInMonth
-	days := s / SecondsInDay
+	years := s / secondsInYear
+	s -= years * secondsInYear
+	months := s / secondsInMonth
+	s -= months * secondsInMonth
+	days := s / secondsInDay
 	ts := ""
 	if years > 0 {
 		ts += fmt.Sprint(years) + "y"
@@ -46,7 +46,7 @@ func secondsSince(dt string) float64 {
 }
 
 func daysSince(dt string) int {
-	return int(secondsSince(dt)) / SecondsInDay
+	return int(secondsSince(dt)) / secondsInDay
 }
 
 func getDate(dt string) string {
