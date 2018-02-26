@@ -120,8 +120,10 @@ form {
     margin-top: 3rem;
     text-align: center;
     position: relative;
-    bottom:0;
+    bottom: 0;
     color: gray;
     font-size: .75em;
     margin-top: .75rem;
+    margin-left: 10%;
+    width: 80%;
 }
