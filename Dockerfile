@@ -16,5 +16,6 @@ ADD ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app ./
 COPY templates ./templates
 COPY static ./static
+COPY images ./images
 EXPOSE 80
 ENTRYPOINT ["./app"]
