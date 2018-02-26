@@ -52,6 +52,7 @@ func init() {
 
 func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("images"))))
 	http.HandleFunc("/info", serveData)
 	http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/health", healthCheckHandler)
