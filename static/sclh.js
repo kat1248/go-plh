@@ -64,8 +64,7 @@ String.prototype.format = function () {
   return this.replace(/\{(\d+)\}/g, function (m, n) { return args[n]; });
 }
 
-function sendNames() {
-  var names = document.getElementById( 'name-list' ).value;
+function postNames( names ) {
   $(document).ajaxStart(function () { $("html").addClass("wait"); });
   $.post("info",
     { characters: names },
@@ -76,6 +75,11 @@ function sendNames() {
       document.getElementById( 'names-form' ).reset();
       $(document).ajaxStop(function () { $("html").removeClass("wait"); });
     });
+}
+
+function sendNames() {
+  var names = document.getElementById( 'name-list' ).value;
+  postNames( names )
 }
 
 function groupRow( group, alliance_name, corp_id, corp_danger, npc_corp ) {
@@ -107,6 +111,19 @@ function toggleCorpGrouping() {
   table.column( 'corp_name' ).visible( !group, false );
   table.column( 'alliance_name' ).visible( !group, false );
   table.draw();
+}
+
+function handlePaste( e ) {
+  var clipboardData, pastedData;
+
+  // Stop data actually being pasted into div
+  e.stopPropagation();
+  e.preventDefault();
+
+  // Get pasted data via clipboard API
+  clipboardData = e.clipboardData || window.clipboardData;
+  pastedData = clipboardData.getData( 'Text' );
+  postNames( pastedData )
 }
 
 function formatKills ( d ) {
@@ -161,15 +178,16 @@ $(document).ready( function () {
   });
 
   toggleCorpGrouping();
+  document.getElementById( 'the-body' ).addEventListener( 'paste', handlePaste );
 
-  $('#chars tbody').on('click', 'td.details-control', function () {
-    var tr = $(this).parents('tr');
+  $( '#chars tbody' ).on( 'click', 'td.details-control', function () {
+    var tr = $(this).parents( 'tr' );
     var row = table.row( tr );
 
     if ( row.child.isShown() ) {
       // This row is already open - close it
       row.child.hide();
-      tr.removeClass('shown');
+      tr.removeClass( 'shown' );
     } else {
       // Open this row (the format() function would return the data to be shown)
       if ( row.child() && row.child().length )
@@ -178,7 +196,7 @@ $(document).ready( function () {
       } else {
         row.child( formatKills( row.data() ) ).show();
       }
-      tr.addClass('shown');
+      tr.addClass( 'shown' );
     }
   });
 });
