@@ -32,6 +32,7 @@ tar -c -f $TMP/bundle.tar -C $TMP go-plh
 # Add static files.
 tar -u -f $TMP/bundle.tar -C ../go-plh templates
 tar -u -f $TMP/bundle.tar -C ../go-plh static
+tar -u -f $TMP/bundle.tar -C ../go-plh images
 # [END tar]
 
 # [START gcs_push]
