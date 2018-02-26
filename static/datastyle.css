@@ -49,7 +49,7 @@ td.danger_thumb span, td.thumb span {
 }
 td.danger_thumb:hover span, td.thumb:hover span { 
     visibility: visible;
-    top: 4px; left: 42px; 
+    top: 2px; left: 42px;
 }
 .dataTables_filter {
     padding: 2px;
@@ -67,22 +67,23 @@ td.blank-control {
     border: 4px solid transparent;
 }
 td.details-control {
-    background: url('details_open.png') no-repeat center center;
+    background: url('glyphicons-433-plus.png') no-repeat center center;
     cursor: pointer;
-    height: 32px;
-    width: 32px;
+    height: 8px;
+    width: 8px;
+    background-size: contain;
 }
 tr.shown td.details-control {
-    background: url('details_close.png') no-repeat center center;
-    height: 32px;
-    width: 32px;
+    background: url('glyphicons-434-minus.png') no-repeat center center;
+    height: 8px;
+    width: 8px;
 }
 label {
-    color: White;
+    color: black;
 }
 table {
     padding: 15px;
-    background-color: #1a3d5c;
+    background-color: white; /*#1a3d5c;*/
 }
 table.embedded {
     padding: 5px 0px 5px 70px;
@@ -100,9 +101,9 @@ body {
     /*font-family: 'Lato',sans-serif;*/
     font-family: static;
     font-size: 14px; 
-    background-color: #000; 
-    background-image: url('zephyr-wallpaper.jpg');
-    background-repeat: no-repeat;
+    background-color: black;
+    /*background-image: url('zephyr-wallpaper.jpg');
+    background-repeat: no-repeat;*/
 }
 .container {
     padding: 10px;
@@ -113,6 +114,14 @@ form {
     margin-right: 5px;
     border-radius: 5px;
     float: left;
-    background-color: #1a3d5c;
+    background-color: white; /*#1a3d5c;*/
 }
-
+#footer {
+    margin-top: 3rem;
+    text-align: center;
+    position: relative;
+    bottom:0;
+    color: gray;
+    font-size: .75em;
+    margin-top: .75rem;
+}

@@ -216,7 +216,7 @@ table.dataTable td {
     .dataTables_wrapper .dataTables_filter input {
       margin-left: 0.5em; }
   .dataTables_wrapper .dataTables_info {
-    color: White !important;
+    color: black !important;
     clear: both;
     float: left;
     padding-top: 0.755em; }
@@ -234,7 +234,7 @@ table.dataTable td {
       text-decoration: none !important;
       cursor: pointer;
       *cursor: hand;
-      color: White !important;
+      color: black !important;
       border: 1px solid transparent;
       border-radius: 2px; }
       .dataTables_wrapper .dataTables_paginate .paginate_button.current, .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
