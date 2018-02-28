@@ -178,7 +178,7 @@ $(document).ready( function () {
   });
 
   toggleCorpGrouping();
-  document.getElementById( 'the-body' ).addEventListener( 'paste', handlePaste );
+  document.getElementById( 'chars' ).addEventListener( 'paste', handlePaste );
 
   $( '#chars tbody' ).on( 'click', 'td.details-control', function () {
     var tr = $(this).parents( 'tr' );
