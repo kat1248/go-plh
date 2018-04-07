@@ -59,7 +59,7 @@ type killMail struct {
 }
 
 const (
-	ccpEsiURL           = "https://esi.evetech.net/latest/"
+	ccpEsiURL           = "https://esi.tech.ccp.is/latest/"
 	zkillAPIURL         = "https://zkillboard.com/api/"
 	userAgent           = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
 	computeFavoriteShip = false
