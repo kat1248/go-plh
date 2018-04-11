@@ -34,6 +34,7 @@ Replace this with good stuff
 ## Installing on a Linux Host
 
 Replace this with valid information
+Use the startup.sh script then restart.sh
 
 ## References
 
