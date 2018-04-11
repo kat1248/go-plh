@@ -137,14 +137,14 @@ function formatKills ( d ) {
     '<td>Total Killed</td>' +
     '<td class="dt-body-center">Since</td>' + 
     '<td>Kills in Last Week</td>' + 
-    '<td>Favorite Ship</td>' + 
+    //'<td>Favorite Ship</td>' + 
     '</tr></thead>' +
     '<tbody>' +
     '<tr><td class="dt-body-center">' + d.recent_explorer_total + 
     '<td class="dt-body-center">' + d.recent_kill_total + '</td>' +
     '<td class="dt-body-center">' + d.last_kill_time + '</td>' +
     '<td class="dt-body-center">' + d.kills_last_week + '</td>' + 
-    '<td class="dt-body-center">' + d.favorite_ship_name + '</td>' +
+    //'<td class="dt-body-center">' + d.favorite_ship_name + '</td>' +
     '</tr></tbody></table>';
   }
 }
