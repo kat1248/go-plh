@@ -12,7 +12,7 @@ use=web
 server=members.dyndns.org
 login=tecak
 password=''
-sclh.servegame.org
+sclh.selfip.net
 EOF
 
 chmod 600 /etc/ddclient.conf
