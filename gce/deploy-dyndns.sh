@@ -11,7 +11,7 @@ protocol=dyndns2
 use=web
 server=members.dyndns.org
 login=tecak
-password='mnpibb12'
+password=''
 sclh.servegame.org
 EOF
 
