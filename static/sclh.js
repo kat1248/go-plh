@@ -131,15 +131,21 @@ function formatKills ( d ) {
   if ( d.kills == 0 ) {
     return ''
   } else {
-    return '<table class="embedded"><thead><tr>' + 
-    '<td>Explorer Ships Killed</td><td>Total Killed</td><td class="dt-body-center">Since</td><td>Kills in Last Week</td><<td>Favorite Ship</td>' + 
+    return '<table class="embedded">' +
+    '<thead><tr>' + 
+    '<td>Explorer Ships Killed</td>' +
+    '<td>Total Killed</td>' +
+    '<td class="dt-body-center">Since</td>' + 
+    '<td>Kills in Last Week</td>' + 
+    '<td>Favorite Ship</td>' + 
     '</tr></thead>' +
+    '<tbody>' +
     '<tr><td class="dt-body-center">' + d.recent_explorer_total + 
     '<td class="dt-body-center">' + d.recent_kill_total + '</td>' +
     '<td class="dt-body-center">' + d.last_kill_time + '</td>' +
     '<td class="dt-body-center">' + d.kills_last_week + '</td>' + 
     '<td class="dt-body-center">' + d.favorite_ship_name + '</td>' +
-    '</tr></table>';
+    '</tr></tbody></table>';
   }
 }
 
