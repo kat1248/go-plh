@@ -11,8 +11,8 @@ protocol=dyndns2
 use=web
 server=members.dyndns.org
 login=tecak
-password='mnpibb12'
-sclh.servegame.org
+password=''
+sclh.selfip.net
 EOF
 
 chmod 600 /etc/ddclient.conf
