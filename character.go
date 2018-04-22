@@ -521,7 +521,7 @@ func fetchLastKillActivity(id int) *characterResponse {
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet("api/characterID/" + ids + "/limit/1/")
+	jsonPayload, err := zkillGet("api/characterID/" + ids + "/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
