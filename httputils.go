@@ -20,6 +20,7 @@ func fetchURL(method, url string, params map[string]string, body io.Reader) ([]b
 		q := req.URL.Query()
 		for key, value := range params {
 			q.Add(key, value)
+			// fmt.Println(key, ":", value)
 		}
 		req.URL.RawQuery = q.Encode()
 	}
@@ -36,7 +37,7 @@ func fetchURL(method, url string, params map[string]string, body io.Reader) ([]b
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("http error %d", resp.StatusCode)
+		return nil, fmt.Errorf("http error %d - %s", resp.StatusCode, url)
 	}
 
 	return respBody, nil

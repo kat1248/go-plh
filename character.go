@@ -344,27 +344,22 @@ func fetchCorporationName(id int) *characterResponse {
 
 	cd := characterData{CorpName: ""}
 
-	jsonPayload, err := ccpGet("corporations/names/", map[string]string{"corporation_ids": ids})
+	jsonPayload, err := ccpGet("corporations/"+ids+"/", nil)
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
 
 	type corpEntry struct {
-		CorporationName string `json:"corporation_name"`
-		CorporationID   int    `json:"corporation_id"`
+		CorporationName string `json:"name"`
 	}
 
-	entries := make([]corpEntry, 0)
+	var entry corpEntry
 
-	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
+	if err := json.Unmarshal(jsonPayload, &entry); err != nil {
 		return &characterResponse{&cd, err}
 	}
 
-	if len(entries) == 0 {
-		return &characterResponse{&cd, fmt.Errorf("invalid corporation id %s", ids)}
-	}
-
-	cd.CorpName = entries[0].CorporationName
+	cd.CorpName = entry.CorporationName
 	ccpCache.Set(ids, cd.CorpName, cache.NoExpiration)
 
 	return &characterResponse{&cd, nil}
@@ -384,27 +379,22 @@ func fetchAllianceName(id int) *characterResponse {
 
 	cd := characterData{AllianceName: ""}
 
-	jsonPayload, err := ccpGet("alliances/names/", map[string]string{"alliance_ids": ids})
+	jsonPayload, err := ccpGet("alliances/"+ids+"/", map[string]string{"alliance_ids": ids})
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
 
 	type allianceEntry struct {
-		AllianceName string `json:"alliance_name"`
-		AllianceID   int    `json:"alliance_id"`
+		AllianceName string `json:"name"`
 	}
 
-	entries := make([]allianceEntry, 0)
+	var entry allianceEntry
 
-	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
+	if err := json.Unmarshal(jsonPayload, &entry); err != nil {
 		return &characterResponse{&cd, err}
 	}
 
-	if len(entries) == 0 {
-		return &characterResponse{&cd, fmt.Errorf("invalid alliance id %s", ids)}
-	}
-
-	cd.AllianceName = entries[0].AllianceName
+	cd.AllianceName = entry.AllianceName
 	ccpCache.Set(ids, cd.AllianceName, cache.NoExpiration)
 
 	return &characterResponse{&cd, nil}
