@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -587,13 +586,13 @@ func fetchKillHistory(id int) *characterResponse {
 	}
 
 	// sort the ships by freq
-	hack := map[int]int{}
-	hackkeys := []int{}
-	for key, val := range shipFreq {
-		hack[val] = key
-		hackkeys = append(hackkeys, val)
-	}
-	sort.Sort(sort.Reverse(sort.IntSlice(hackkeys)))
+	//hack := map[int]int{}
+	//hackkeys := []int{}
+	//for key, val := range shipFreq {
+	//	hack[val] = key
+	//	hackkeys = append(hackkeys, val)
+	//}
+	//sort.Sort(sort.Reverse(sort.IntSlice(hackkeys)))
 
 	// for _, val := range hackkeys {
 	// 	fmt.Println("ship", hack[val], "times", val)
@@ -603,8 +602,8 @@ func fetchKillHistory(id int) *characterResponse {
 	cd.RecentExplorerTotal = explorerTotal
 	cd.RecentKillTotal = len(entries)
 	cd.LastKillTime = getDate(entries[len(entries)-1].Time)
-	cd.FavoriteShipID = hack[hackkeys[0]]
-	cd.FavoriteShipCount = hackkeys[0]
+	//cd.FavoriteShipID = hack[hackkeys[0]]
+	//cd.FavoriteShipCount = hackkeys[0]
 
 	return &characterResponse{&cd, nil}
 }
