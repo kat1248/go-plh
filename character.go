@@ -45,10 +45,9 @@ type characterResponse struct {
 }
 
 const (
-	ccpEsiURL           = "https://esi.evetech.net/latest/"
-	zkillAPIURL         = "https://zkillboard.com/api/"
-	userAgent           = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
-	computeFavoriteShip = false
+	ccpEsiURL   = "https://esi.evetech.net/latest/"
+	zkillAPIURL = "https://zkillboard.com/api/"
+	userAgent   = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
 )
 
 var (
@@ -117,7 +116,7 @@ func fetchcharacterData(name string) *characterResponse {
 		return &characterResponse{&cd, err}
 	}
 
-	if computeFavoriteShip && cd.FavoriteShipID != 0 {
+	if cd.FavoriteShipID != 0 {
 		ch = make(chan *characterResponse, 1)
 
 		fetcher(fetchItemName, cd.FavoriteShipID)
@@ -456,7 +455,7 @@ func fetchItemName(id int) *characterResponse {
 	}
 
 	cd.FavoriteShipName = entries[0].Name
-
+	fmt.Println("favorite ship =", cd.FavoriteShipName)
 	ccpCache.Set("ship:"+ids, cd.FavoriteShipName, cache.NoExpiration)
 
 	return &characterResponse{&cd, nil}
