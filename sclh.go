@@ -27,8 +27,7 @@ var (
 	port           int  // which port to listen on
 	debugMode      bool // are we in debug mode
 	localTransport = &http.Transport{DisableKeepAlives: true}
-	//localClient    = &http.Client{Transport: localTransport}
-	localClient *pester.Client
+	localClient    *pester.Client
 )
 
 func init() {

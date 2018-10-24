@@ -30,7 +30,7 @@ type zKillMail struct {
 }
 
 const (
-	computeFavoriteShip = true
+	computeFavoriteShip = false
 )
 
 func ccpGetKillMail(id int, hash string) *killMail {
