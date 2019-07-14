@@ -63,6 +63,9 @@ func (c characterData) String() string {
 }
 
 func fetchcharacterData(name string) *characterResponse {
+	// zkillboard might be down
+	zkillboardAvailable := zkillCheck()
+
 	cd := characterData{Name: name}
 
 	id, err := fetchCharacterID(name)
@@ -84,7 +87,9 @@ func fetchcharacterData(name string) *characterResponse {
 	}
 
 	fetcher(fetchCCPRecord, cd.CharacterID)
-	fetcher(fetchZKillRecord, cd.CharacterID)
+	if zkillboardAvailable {
+		fetcher(fetchZKillRecord, cd.CharacterID)
+	}
 	fetcher(fetchCorpStartDate, cd.CharacterID)
 
 	wg.Wait()
@@ -96,7 +101,9 @@ func fetchcharacterData(name string) *characterResponse {
 
 	ch = make(chan *characterResponse, 6)
 
-	fetcher(fetchCorpDanger, cd.CorpID)
+	if zkillboardAvailable {
+		fetcher(fetchCorpDanger, cd.CorpID)
+	}
 	fetcher(fetchAllianceName, cd.AllianceID)
 	fetcher(fetchCorporationName, cd.CorpID)
 

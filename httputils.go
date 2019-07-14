@@ -36,7 +36,7 @@ func fetchURL(method, url string, params map[string]string, body io.Reader) ([]b
 		return nil, err
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("http error %d - %s", resp.StatusCode, url)
 	}
 
@@ -53,4 +53,29 @@ func ccpPost(url string, params map[string]string, body io.Reader) ([]byte, erro
 
 func zkillGet(url string) ([]byte, error) {
 	return fetchURL("GET", zkillAPIURL+url, nil, nil)
+}
+
+func zkillCheck() bool {
+	req, err := http.NewRequest("GET", "https://zkillboard.com/", nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Add("User-Agent", userAgent)
+
+	// temporarily turn off retries
+	retries := localClient.MaxRetries
+	localClient.MaxRetries = 0
+	defer func() {
+		localClient.MaxRetries = retries
+	}()
+	resp, err := localClient.Do(req)
+	if err != nil {
+		return false
+	}
+
+	if resp.StatusCode == http.StatusServiceUnavailable {
+		return false
+	}
+
+	return true
 }
