@@ -56,7 +56,7 @@ func zkillGet(url string) ([]byte, error) {
 }
 
 func zkillCheck() bool {
-	req, err := http.NewRequest("GET", "https://zkillboard.com/", nil)
+	req, err := http.NewRequest("GET", zkillURL, nil)
 	if err != nil {
 		return false
 	}

@@ -37,6 +37,7 @@ type characterData struct {
 	FavoriteShipID      int     `json:"favorite_ship_id"`
 	FavoriteShipCount   int     `json:"favorite_ship_count"`
 	FavoriteShipName    string  `json:"favorite_ship_name"`
+	ZkillUsed           bool    `json:"zkill_used"`
 }
 
 type characterResponse struct {
@@ -47,6 +48,7 @@ type characterResponse struct {
 const (
 	ccpEsiURL   = "https://esi.evetech.net/latest/"
 	zkillAPIURL = "https://zkillboard.com/api/"
+	zkillURL    = "https://zkillboard.com/"
 	userAgent   = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
 )
 
@@ -63,15 +65,15 @@ func (c characterData) String() string {
 }
 
 func fetchcharacterData(name string) *characterResponse {
-	// zkillboard might be down
-	zkillboardAvailable := zkillCheck()
-
 	cd := characterData{Name: name}
 
 	id, err := fetchCharacterID(name)
 	if err != nil {
 		return &characterResponse{&cd, fmt.Errorf("'%s' not found", name)}
 	}
+
+	// zkillboard might be down
+	cd.ZkillUsed = zkillCheck()
 
 	cd.CharacterID = id
 
@@ -87,7 +89,7 @@ func fetchcharacterData(name string) *characterResponse {
 	}
 
 	fetcher(fetchCCPRecord, cd.CharacterID)
-	if zkillboardAvailable {
+	if cd.ZkillUsed {
 		fetcher(fetchZKillRecord, cd.CharacterID)
 	}
 	fetcher(fetchCorpStartDate, cd.CharacterID)
@@ -101,7 +103,7 @@ func fetchcharacterData(name string) *characterResponse {
 
 	ch = make(chan *characterResponse, 6)
 
-	if zkillboardAvailable {
+	if cd.ZkillUsed {
 		fetcher(fetchCorpDanger, cd.CorpID)
 	}
 	fetcher(fetchAllianceName, cd.AllianceID)
