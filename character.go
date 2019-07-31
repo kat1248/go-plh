@@ -25,7 +25,7 @@ type characterData struct {
 	LastKill            string  `json:"last_kill"`
 	CorpName            string  `json:"corp_name"`
 	CorpID              int     `json:"corp_id"`
-	CorpAge             int     `json:"corp_age"`
+	CorpAge             string  `json:"corp_age"`
 	IsNpcCorp           bool    `json:"is_npc_corp"`
 	CorpDanger          int     `json:"corp_danger"`
 	AllianceID          int     `json:"alliance_id"`
@@ -395,7 +395,7 @@ func fetchAllianceName(id int) *characterResponse {
 }
 
 func fetchCorpStartDate(id int) *characterResponse {
-	cd := characterData{CorpAge: 0}
+	cd := characterData{CorpAge: ""}
 
 	ids := fmt.Sprint(id)
 
@@ -418,7 +418,8 @@ func fetchCorpStartDate(id int) *characterResponse {
 		return &characterResponse{&cd, nil}
 	}
 
-	cd.CorpAge = daysSince(entries[0].StartDate)
+	//cd.CorpAge = daysSince(entries[0].StartDate)
+	cd.CorpAge = secondsToTimeString(secondsSince(entries[0].StartDate))
 
 	return &characterResponse{&cd, nil}
 }

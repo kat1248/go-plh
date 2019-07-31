@@ -23,7 +23,7 @@ var dataFormatting = (function () {
       return '<img src="https://imageserver.eveonline.com/Corporation/{0}_64.png" height="32" width="32" alt="{1} thumbnail" title="Corporation Danger Level: {2}" align="middle">'.format( row.corp_id, row.corp_name, row.corp_danger );
     },
     corp_age: function ( data, type, row ) {
-      return data + ' days';
+      return data;
     },
     row_group: function ( rows, corp_name ) {
       var first_row = rows.data()[0]
