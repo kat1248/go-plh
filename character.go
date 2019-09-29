@@ -72,8 +72,8 @@ func fetchcharacterData(name string) *characterResponse {
 		return &characterResponse{&cd, fmt.Errorf("'%s' not found", name)}
 	}
 
-	// zkillboard might be down
-	cd.ZkillUsed = zkillCheck()
+	// zkillboard might be down. zkillCheck()
+	cd.ZkillUsed = true 
 
 	cd.CharacterID = id
 
