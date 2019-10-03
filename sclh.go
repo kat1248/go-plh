@@ -47,6 +47,8 @@ func init() {
 	localClient.MaxRetries = 5
 	localClient.Backoff = pester.ExponentialJitterBackoff
 	localClient.Transport = localTransport
+	localClient.RetryOnHTTP429 = true
+
 }
 
 func main() {

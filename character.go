@@ -72,8 +72,7 @@ func fetchcharacterData(name string) *characterResponse {
 		return &characterResponse{&cd, fmt.Errorf("'%s' not found", name)}
 	}
 
-	// zkillboard might be down. zkillCheck()
-	cd.ZkillUsed = true 
+	cd.ZkillUsed = true
 
 	cd.CharacterID = id
 
@@ -186,7 +185,7 @@ func fetchCCPRecord(id int) *characterResponse {
 }
 
 func fetchZKillRecord(id int) *characterResponse {
-	cd := characterData{}
+	cd := characterData{ZkillUsed: false}
 
 	zkillRec, err := fetchZKillJSON(id)
 	if err != nil {
@@ -210,6 +209,7 @@ func fetchZKillRecord(id int) *characterResponse {
 	cd.Kills = zr.Kills
 	cd.Losses = zr.Losses
 	cd.HasKillboard = (cd.Kills != 0) || (cd.Losses != 0)
+	cd.ZkillUsed = true
 
 	return &characterResponse{&cd, nil}
 }
