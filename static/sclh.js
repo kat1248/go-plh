@@ -15,12 +15,12 @@ var dataFormatting = (function () {
       return '<a href="https://zkillboard.com/corporation/{0}/" target="_blank" rel="noopener">{1}</a>'.format( row.corp_id, row.corp_name );
     },
     char_thumb: function ( data, type, row ) {
-      var img = '<img src="https://image.eveonline.com/Character/{0}_64.jpg" height="32" width="32" alt="{1} thumbnail" align="middle">'.format( row.character_id, row.name );
-      var span = '<span><img src="https://image.eveonline.com/Character/{0}_512.jpg" alt="{1} portrait"></span>'.format( row.character_id, row.name );
+      var img = '<img src="https://images.evetech.net/characters/{0}/portrait" height="32" width="32" alt="{1} thumbnail" align="middle">'.format( row.character_id, row.name );
+      var span = '<span><img src="https://images.evetech.net/characters/{0}/portrait" height="512" width="512" alt="{1} portrait"></span>'.format( row.character_id, row.name );
       return img + span;
     },
     corp_thumb: function ( data, type, row ) {
-      return '<img src="https://imageserver.eveonline.com/Corporation/{0}_64.png" height="32" width="32" alt="{1} thumbnail" title="Corporation Danger Level: {2}" align="middle">'.format( row.corp_id, row.corp_name, row.corp_danger );
+      return '<img src="https://images.evetech.net/corporations/{0}/logo" height="32" width="32" alt="{1} thumbnail" title="Corporation Danger Level: {2}" align="middle">'.format( row.corp_id, row.corp_name, row.corp_danger );
     },
     corp_age: function ( data, type, row ) {
       return data;
