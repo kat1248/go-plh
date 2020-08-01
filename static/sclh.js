@@ -83,7 +83,7 @@ function sendNames() {
 }
 
 function groupRow( group, alliance_name, corp_id, corp_danger, npc_corp ) {
-  var img = '<td class="blank_thumb"><img src="https://imageserver.eveonline.com/Corporation/{0}_64.png" height="32" width="32"></td>'.format( corp_id );
+  var img = '<td class="blank_thumb"><img src="https://images.evetech.net/corporations/{0}/logo" height="32" width="32"></td>'.format( corp_id );
   var corp_class = "";
   if ( corp_danger > 50 ) {
     corp_class = 'class="danger"';
