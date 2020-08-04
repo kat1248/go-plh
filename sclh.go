@@ -11,6 +11,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -31,11 +32,17 @@ var (
 )
 
 func init() {
-	flag.IntVar(&port, "port", 80, "port to listen on")
+	ports := os.Getenv("PORT")
+	if ports != "" {
+		port, _ = strconv.Atoi(ports)
+		log.Println("Setting port to", fmt.Sprint(port))
+	} else {
+		flag.IntVar(&port, "port", 80, "port to listen on")
+	}
+
 	flag.BoolVar(&debugMode, "debug", false, "debug mode switch")
 	flag.Parse()
 
-	// log.SetFormatter(&log.JSONFormatter{})
 	if debugMode {
 		log.SetOutput(os.Stdout)
 	}
