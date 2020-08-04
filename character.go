@@ -49,7 +49,7 @@ const (
 	ccpEsiURL   = "https://esi.evetech.net/latest/"
 	zkillAPIURL = "https://zkillboard.com/api/"
 	zkillURL    = "https://zkillboard.com/"
-	userAgent   = "kat1248@gmail.com - SC Little Helper - sclh.selfip.net"
+	userAgent   = "kat1248@gmail.com - SC Little Helper - sclh.ddns.net"
 )
 
 var (
