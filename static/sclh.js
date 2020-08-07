@@ -1,26 +1,28 @@
 "use strict";
 
+const eve_image_server = "https://images.evetech.net"
+
 var table;
 
 var dataFormatting = (function () {
   return {
     char_name: function ( data, type, row ) {
       if ( row.has_killboard ) {
-        return '<a href="https://zkillboard.com/character/{0}/" target="_blank" rel="noopener">{1}</a>'.format( row.character_id, row.name );
+        return '<a href="{0}/character/{1}/" target="_blank" rel="noopener">{2}</a>'.format( eve_image_server, row.character_id, row.name );
       } else {
         return data;
       }
     },
     corp_name: function ( data, type, row ) {
-      return '<a href="https://zkillboard.com/corporation/{0}/" target="_blank" rel="noopener">{1}</a>'.format( row.corp_id, row.corp_name );
+      return '<a href="{0}/corporation/{1}/" target="_blank" rel="noopener">{2}</a>'.format( eve_image_server, row.corp_id, row.corp_name );
     },
     char_thumb: function ( data, type, row ) {
-      var img = '<img src="https://images.evetech.net/characters/{0}/portrait" height="32" width="32" alt="{1} thumbnail" align="middle">'.format( row.character_id, row.name );
-      var span = '<span><img src="https://images.evetech.net/characters/{0}/portrait" height="512" width="512" alt="{1} portrait"></span>'.format( row.character_id, row.name );
+      var img = '<img src="{0}/characters/{1}/portrait" height="32" width="32" alt="{2} thumbnail" align="middle">'.format( eve_image_server, row.character_id, row.name );
+      var span = '<span><img src="{0}/characters/{1}/portrait" height="512" width="512" alt="{2} portrait"></span>'.format( eve_image_server, row.character_id, row.name );
       return img + span;
     },
     corp_thumb: function ( data, type, row ) {
-      return '<img src="https://images.evetech.net/corporations/{0}/logo" height="32" width="32" alt="{1} thumbnail" title="Corporation Danger Level: {2}" align="middle">'.format( row.corp_id, row.corp_name, row.corp_danger );
+      return '<img src="{0}/corporations/{1}/logo" height="32" width="32" alt="{2} thumbnail" title="Corporation Danger Level: {3}" align="middle">'.format( eve_image_server, row.corp_id, row.corp_name, row.corp_danger );
     },
     corp_age: function ( data, type, row ) {
       return data;
@@ -83,7 +85,7 @@ function sendNames() {
 }
 
 function groupRow( group, alliance_name, corp_id, corp_danger, npc_corp ) {
-  var img = '<td class="blank_thumb"><img src="https://images.evetech.net/corporations/{0}/logo" height="32" width="32"></td>'.format( corp_id );
+  var img = '<td class="blank_thumb"><img src="{0}/corporations/{1}/logo" height="32" width="32"></td>'.format( eve_image_server, corp_id );
   var corp_class = "";
   if ( corp_danger > 50 ) {
     corp_class = 'class="danger"';
