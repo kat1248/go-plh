@@ -246,6 +246,58 @@ func fetchZKillJSON(id int) (string, error) {
 	return string(jsonPayload), nil
 }
 
+func loadCharacterIds(names []string) (bool, error) {
+	findNames := []string{}
+
+	for _, name := range names {
+		_, found := ccpCache.Get(name)
+		if !found {
+			findNames = append(findNames, name)
+		}
+	}
+
+	// nothing to do, we've already found the ids
+	if len(findNames) == 0 {
+		return true, nil
+	}
+
+	js, err := json.Marshal(findNames)
+	if err != nil {
+		return false, fmt.Errorf("error marshaling names")
+	}
+
+	jsonPayload, err := ccpPost(
+		"universe/ids/",
+		map[string]string{"datasource": "tranquility"},
+		bytes.NewBuffer(js))
+	if err != nil {
+		return false, err
+	}
+
+	type idEntry struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	}
+	type characterList struct {
+		Characters []idEntry `json:"characters"`
+	}
+	var entries characterList
+
+	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
+		return false, err
+	}
+
+	if len(entries.Characters) == 0 {
+		return false, fmt.Errorf("no entries found")
+	}
+
+	for _, entry := range entries.Characters {
+		ccpCache.Set(entry.Name, entry.ID, cache.NoExpiration)
+	}
+
+	return true, nil
+}
+
 func fetchCharacterID(name string) (int, error) {
 	id, found := ccpCache.Get(name)
 	if found {
@@ -270,7 +322,6 @@ func fetchCharacterID(name string) (int, error) {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	}
-
 	type characterList struct {
 		Characters []idEntry `json:"characters"`
 	}

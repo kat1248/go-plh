@@ -92,6 +92,11 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		}).Info("Handled request")
 	}(time.Now(), len(names))
 
+	success, err := loadCharacterIds(names)
+	if !success {
+		log.Error(err)
+	}
+
 	profiles := make([]characterData, 0)
 	ch := make(chan *characterResponse, len(names))
 	var wg sync.WaitGroup
