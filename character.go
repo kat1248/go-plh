@@ -64,7 +64,7 @@ func (c characterData) String() string {
 	return c.Name
 }
 
-func fetchcharacterData(name string) *characterResponse {
+func fetchCharacterData(name string) *characterResponse {
 	cd := characterData{Name: name}
 
 	id, err := fetchCharacterID(name)
@@ -252,34 +252,41 @@ func fetchCharacterID(name string) (int, error) {
 		return id.(int), nil
 	}
 
-	jsonPayload, err := ccpGet(
-		"search/",
-		map[string]string{
-			"categories": "character",
-			"search":     name,
-			"strict":     "true"})
+	nameList := []string{name}
+	js, err := json.Marshal(nameList)
+	if err != nil {
+		return 0, fmt.Errorf("error marshaling %s", name)
+	}
+
+	jsonPayload, err := ccpPost(
+		"universe/ids/",
+		map[string]string{"datasource": "tranquility"},
+		bytes.NewBuffer(js))
 	if err != nil {
 		return 0, err
 	}
 
-	type charIDResponse struct {
-		Character []int `json:"character"`
+	type idEntry struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
 	}
-	var f charIDResponse
 
-	if err := json.Unmarshal(jsonPayload, &f); err != nil {
+	type characterList struct {
+		Characters []idEntry `json:"characters"`
+	}
+	var entries characterList
+
+	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
+		fmt.Println("error = ", err)
 		return 0, err
 	}
 
-	cid := 0
-	switch len(f.Character) {
-	case 0:
-		return cid, fmt.Errorf("invalid character name %s", name)
-	case 1:
-		cid = f.Character[0]
-	default:
-		cid = fetchMultipleIds(name, f.Character)
+	if len(entries.Characters) == 0 {
+		return 0, fmt.Errorf("not found %s", name)
 	}
+
+	cid := 0
+	cid = entries.Characters[0].ID
 
 	ccpCache.Set(name, cid, cache.NoExpiration)
 	return cid, nil

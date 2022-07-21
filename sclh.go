@@ -103,7 +103,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 			if len(name) < 3 {
 				return
 			}
-			ch <- fetchcharacterData(name)
+			ch <- fetchCharacterData(name)
 		}(name)
 	}
 
