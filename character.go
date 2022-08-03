@@ -466,7 +466,7 @@ func fetchCorpStartDate(id int) *characterResponse {
 		StartDate string `json:"start_date"`
 	}
 
-	entries := make([]corporationEntry, 0)
+	var entries []corporationEntry
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
 		return &characterResponse{&cd, err}
@@ -512,7 +512,7 @@ func fetchItemName(id int) *characterResponse {
 		Category string `json:"category"`
 	}
 
-	entries := make([]typeEntry, 0)
+	var entries []typeEntry
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
 		return &characterResponse{&cd, err}
