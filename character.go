@@ -9,7 +9,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/imdario/mergo"
-	cache "github.com/patrickmn/go-cache"
+	cache "zgo.at/zcache"
 )
 
 const (
