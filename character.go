@@ -2,48 +2,15 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/imdario/mergo"
 	cache "github.com/patrickmn/go-cache"
 )
-
-// output data type, this is what is sent to the webpage to represent a character
-type characterData struct {
-	Name                string  `json:"name"`
-	CharacterID         int     `json:"character_id"`
-	Security            float32 `json:"security"`
-	Age                 string  `json:"age"`
-	Danger              int     `json:"danger"`
-	Gang                int     `json:"gang"`
-	Kills               int     `json:"kills"`
-	Losses              int     `json:"losses"`
-	HasKillboard        bool    `json:"has_killboard"`
-	LastKill            string  `json:"last_kill"`
-	CorpName            string  `json:"corp_name"`
-	CorpID              int     `json:"corp_id"`
-	CorpAge             string  `json:"corp_age"`
-	IsNpcCorp           bool    `json:"is_npc_corp"`
-	CorpDanger          int     `json:"corp_danger"`
-	AllianceID          int     `json:"alliance_id"`
-	AllianceName        string  `json:"alliance_name"`
-	RecentExplorerTotal int     `json:"recent_explorer_total"`
-	RecentKillTotal     int     `json:"recent_kill_total"`
-	LastKillTime        string  `json:"last_kill_time"`
-	KillsLastWeek       int     `json:"kills_last_week"`
-	FavoriteShipID      int     `json:"favorite_ship_id"`
-	FavoriteShipCount   int     `json:"favorite_ship_count"`
-	FavoriteShipName    string  `json:"favorite_ship_name"`
-	ZkillUsed           bool    `json:"zkill_used"`
-}
-
-type characterResponse struct {
-	char *characterData
-	err  error
-}
 
 const (
 	ccpEsiURL   = "https://esi.evetech.net/latest/"
@@ -53,8 +20,8 @@ const (
 )
 
 var (
-	ccpCache   = cache.New(60*time.Minute, 10*time.Minute)
-	zkillCache = cache.New(60*time.Minute, 10*time.Minute)
+	ccpCache   = cache.New(1*time.Hour, 10*time.Minute)
+	zkillCache = cache.New(1*time.Hour, 10*time.Minute)
 	nicknames  = map[string]string{
 		"Mynxee":        "Space Mom",
 		"Portia Tigana": "Tiggs"}
@@ -162,13 +129,6 @@ func fetchCCPRecord(id int) *characterResponse {
 		return &characterResponse{&cd, err}
 	}
 
-	type ccpResponse struct {
-		Name       string  `json:"name"`
-		CorpID     int     `json:"corporation_id"`
-		AllianceID int     `json:"alliance_id"`
-		Security   float32 `json:"security_status"`
-		Birthday   string  `json:"birthday"`
-	}
 	var cr ccpResponse
 
 	if err = json.Unmarshal([]byte(ccpRec), &cr); err != nil {
@@ -192,12 +152,6 @@ func fetchZKillRecord(id int) *characterResponse {
 		return &characterResponse{&cd, err}
 	}
 
-	type zKillResponse struct {
-		Danger int `json:"dangerRatio"`
-		Gang   int `json:"gangRatio"`
-		Kills  int `json:"shipsDestroyed"`
-		Losses int `json:"shipsLost"`
-	}
 	var zr zKillResponse
 
 	if err = json.Unmarshal([]byte(zkillRec), &zr); err != nil {
@@ -274,13 +228,6 @@ func loadCharacterIds(names []string) (bool, error) {
 		return false, err
 	}
 
-	type idEntry struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
-	type characterList struct {
-		Characters []idEntry `json:"characters"`
-	}
 	var entries characterList
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
@@ -318,13 +265,6 @@ func fetchCharacterID(name string) (int, error) {
 		return 0, err
 	}
 
-	type idEntry struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
-	type characterList struct {
-		Characters []idEntry `json:"characters"`
-	}
 	var entries characterList
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
@@ -341,49 +281,6 @@ func fetchCharacterID(name string) (int, error) {
 
 	ccpCache.Set(name, cid, cache.NoExpiration)
 	return cid, nil
-}
-
-func fetchMultipleIds(name string, ids []int) int {
-	cid := 0
-	type fetchData struct {
-		json string
-		id   int
-	}
-
-	ch := make(chan *fetchData, len(ids))
-	var wg sync.WaitGroup
-
-	for _, v := range ids {
-		wg.Add(1)
-		go func(v int) {
-			defer wg.Done()
-			rec, err := fetchCharacterJSON(v)
-			if err != nil {
-				return
-			}
-			ch <- &fetchData{json: rec, id: v}
-		}(v)
-	}
-
-	wg.Wait()
-	close(ch)
-
-	type ccpResponse struct {
-		Name string `json:"name"`
-	}
-	var cr ccpResponse
-	for r := range ch {
-		err := json.Unmarshal([]byte(r.json), &cr)
-		if err != nil {
-			continue
-		}
-		if cr.Name == name {
-			cid = r.id
-			break
-		}
-	}
-
-	return cid
 }
 
 func fetchCorporationName(id int) *characterResponse {
@@ -544,9 +441,6 @@ func fetchCorpDanger(id int) *characterResponse {
 		return &characterResponse{&cd, err}
 	}
 
-	type zKillResponse struct {
-		Danger int `json:"dangerRatio"`
-	}
 	var z zKillResponse
 
 	if err := json.Unmarshal(jsonPayload, &z); err != nil {
