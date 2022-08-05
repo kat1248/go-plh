@@ -22,6 +22,7 @@ import (
 
 const (
 	maximumNames = 50
+	useFloat     = false
 )
 
 var (
@@ -55,7 +56,6 @@ func init() {
 	localClient.Backoff = pester.ExponentialJitterBackoff
 	localClient.Transport = localTransport
 	localClient.RetryOnHTTP429 = true
-
 }
 
 func main() {
@@ -171,11 +171,4 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error())
 		http.Error(w, http.StatusText(500), 500)
 	}
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
