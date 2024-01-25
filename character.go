@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/goccy/go-json"
+	json "github.com/goccy/go-json"
 	"github.com/imdario/mergo"
 	cache "zgo.at/zcache"
 )
@@ -180,6 +180,7 @@ func fetchCharacterJSON(id int) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	ccpCache.Set(ids, string(jsonPayload), cache.DefaultExpiration)
 	return string(jsonPayload), nil
 }
@@ -196,6 +197,7 @@ func fetchZKillJSON(id int) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	zkillCache.Set(ids, string(jsonPayload), cache.DefaultExpiration)
 	return string(jsonPayload), nil
 }
