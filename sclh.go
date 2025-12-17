@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/sethgrid/pester"
 	log "github.com/sirupsen/logrus"
@@ -48,8 +49,6 @@ func init() {
 		log.SetOutput(os.Stdout)
 	}
 
-	rand.Seed(time.Now().Unix())
-
 	localClient = pester.New()
 	localClient.Concurrency = 3
 	localClient.MaxRetries = 5
@@ -64,6 +63,17 @@ func main() {
 		fmt.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
+	m := &autocert.Manager{
+		Cache:      autocert.DirCache("secret-dir"),
+		Prompt:     autocert.AcceptTOS,
+		Email:      "kat1248@gmail.com",
+		HostPolicy: autocert.HostWhitelist("tiggs.ddns.net", "sclh.ddns.net"),
+	}
+	s := &http.Server{
+		Addr:      ":https",
+		TLSConfig: m.TLSConfig(),
+	}
+
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("images"))))
 	http.HandleFunc("/info", serveData)
@@ -72,7 +82,13 @@ func main() {
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
 	log.Println("Listening on port", fmt.Sprint(port))
-	log.Println(http.ListenAndServe(":"+fmt.Sprint(port), nil))
+	if debugMode {
+		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), nil))
+	} else {
+		go http.ListenAndServe(":"+fmt.Sprint(port), m.HTTPHandler(nil))
+
+		log.Fatal(s.ListenAndServeTLS("", ""))
+	}
 }
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
