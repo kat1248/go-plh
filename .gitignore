@@ -3,3 +3,4 @@ go-plh
 vendor
 *~
 *.exe
+certs/

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -63,15 +64,11 @@ func main() {
 		fmt.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
-	m := &autocert.Manager{
-		Cache:      autocert.DirCache("secret-dir"),
+	certManager := &autocert.Manager{
+		Cache:      autocert.DirCache("./certs"),
 		Prompt:     autocert.AcceptTOS,
 		Email:      "kat1248@gmail.com",
 		HostPolicy: autocert.HostWhitelist("tiggs.ddns.net", "sclh.ddns.net"),
-	}
-	s := &http.Server{
-		Addr:      ":https",
-		TLSConfig: m.TLSConfig(),
 	}
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
@@ -80,14 +77,24 @@ func main() {
 	http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/health", healthCheckHandler)
 	http.HandleFunc("/favicon.ico", faviconHandler)
+	server := &http.Server{
+		Addr: ":8443",
+		TLSConfig: &tls.Config{
+			GetCertificate: certManager.GetCertificate,
+			//NextProtos: []string{
+			//	"http/1.1", "acme-tls/1",
+			//},
+		},
+	}
 
-	log.Println("Listening on port", fmt.Sprint(port))
 	if debugMode {
+		log.Println("Listening on port", fmt.Sprint(port))
 		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), nil))
 	} else {
-		go http.ListenAndServe(":"+fmt.Sprint(port), m.HTTPHandler(nil))
+		log.Println("Secure server")
+		go http.ListenAndServe(":"+fmt.Sprint(port), certManager.HTTPHandler(nil))
 
-		log.Fatal(s.ListenAndServeTLS("", ""))
+		log.Fatal(server.ListenAndServeTLS("", ""))
 	}
 }
 
