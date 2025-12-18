@@ -30,6 +30,7 @@ const (
 var (
 	port           int  // which port to listen on
 	debugMode      bool // are we in debug mode
+	localMode      bool // are we running locally
 	localTransport = &http.Transport{DisableKeepAlives: true}
 	localClient    *pester.Client
 )
@@ -44,6 +45,7 @@ func init() {
 	}
 
 	flag.BoolVar(&debugMode, "debug", false, "debug mode switch")
+	flag.BoolVar(&localMode, "local", false, "run server locally without TLS")
 	flag.Parse()
 
 	if debugMode {
@@ -77,13 +79,15 @@ func main() {
 	http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/health", healthCheckHandler)
 	http.HandleFunc("/favicon.ico", faviconHandler)
+
+	var httpsPort string = ":443"
+	if localMode {
+		httpsPort = ":8443"
+	}
 	server := &http.Server{
-		Addr: ":8443",
+		Addr: httpsPort,
 		TLSConfig: &tls.Config{
 			GetCertificate: certManager.GetCertificate,
-			//NextProtos: []string{
-			//	"http/1.1", "acme-tls/1",
-			//},
 		},
 	}
 
