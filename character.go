@@ -203,6 +203,9 @@ func loadCharacterIds(names []string) (bool, error) {
 	findNames := []string{}
 
 	for _, name := range names {
+		if len(name) == 0 {
+			continue
+		}
 		_, found := ccpCache.Get(name)
 		if !found {
 			findNames = append(findNames, name)

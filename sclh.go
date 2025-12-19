@@ -128,6 +128,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	nameList := strings.Split(r.FormValue("characters"), "\n")
 	names := nameList[0:min(maximumNames, len(nameList))]
 	log.Info("Requested Names [" + strings.Join(names[:], ", ") + "]")
+
 	defer func(start time.Time, num int) {
 		elapsed := time.Since(start).Seconds()
 		log.WithFields(log.Fields{
