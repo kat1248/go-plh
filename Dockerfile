@@ -1,21 +1,20 @@
-FROM golang:1.10 AS builder
+FROM golang:1.25
 
-# Download and install the latest release of dep
-ADD https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 /usr/bin/dep
-RUN chmod +x /usr/bin/dep
+WORKDIR /usr/src/app
 
-# Copy the code from the host and compile it
-WORKDIR $GOPATH/src/go-plh
-COPY Gopkg.toml Gopkg.lock ./
-RUN dep ensure --vendor-only
-COPY . ./
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix nocgo -o /app .
+# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build -v -o /usr/local/bin/app ./...
+
+CMD ["app"]
 
 FROM scratch
-ADD ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app ./
 COPY templates ./templates
 COPY static ./static
 COPY images ./images
-EXPOSE 80
+EXPOSE 8080
 ENTRYPOINT ["./app"]
