@@ -53,27 +53,27 @@ func zkillGet(url string) ([]byte, error) {
 	return fetchURL(http.MethodGet, zkillAPIURL+url, nil, nil)
 }
 
-func zkillCheck() bool {
-	req, err := http.NewRequest(http.MethodGet, zkillURL, nil)
-	if err != nil {
-		return false
-	}
-	req.Header.Add("User-Agent", userAgent)
+// func zkillCheck() bool {
+// 	req, err := http.NewRequest(http.MethodGet, zkillURL, nil)
+// 	if err != nil {
+// 		return false
+// 	}
+// 	req.Header.Add("User-Agent", userAgent)
 
-	// temporarily turn off retries
-	retries := localClient.MaxRetries
-	localClient.MaxRetries = 0
-	defer func() {
-		localClient.MaxRetries = retries
-	}()
-	resp, err := localClient.Do(req)
-	if err != nil {
-		return false
-	}
+// 	// temporarily turn off retries
+// 	retries := localClient.MaxRetries
+// 	localClient.MaxRetries = 0
+// 	defer func() {
+// 		localClient.MaxRetries = retries
+// 	}()
+// 	resp, err := localClient.Do(req)
+// 	if err != nil {
+// 		return false
+// 	}
 
-	if resp.StatusCode == http.StatusServiceUnavailable {
-		return false
-	}
+// 	if resp.StatusCode == http.StatusServiceUnavailable {
+// 		return false
+// 	}
 
-	return true
-}
+// 	return true
+// }

@@ -21,8 +21,8 @@ import (
 
 	"github.com/antihax/goesi"
 	json "github.com/goccy/go-json"
-	"github.com/gregjones/httpcache"
-	"github.com/sethgrid/pester"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/sandrolain/httpcache"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,7 +36,7 @@ var (
 	debugMode    bool // are we in debug mode
 	localMode    bool // are we running locally
 	analyzeKills bool // do more analysis on kills
-	localClient  *pester.Client
+	localClient  *http.Client
 )
 
 func init() {
@@ -57,14 +57,24 @@ func init() {
 		log.SetOutput(os.Stdout)
 	}
 
-	localTransport := httpcache.NewTransport(httpcache.NewMemoryCache())
+	// 1. Create a retryable HTTP client (e.g., from hashicorp)
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = 3                          // Configure max retries
+	retryClient.HTTPClient.Timeout = 10 * time.Second // Set a timeout for individual requests
 
-	localClient = pester.New()
-	localClient.Concurrency = 3
-	localClient.MaxRetries = 5
-	localClient.Backoff = pester.ExponentialJitterBackoff
-	localClient.Transport = localTransport
-	localClient.RetryOnHTTP429 = true
+	// 2. Wrap the retryable client's transport with the cache transport
+	// The httpcache package works as a RoundTripper
+	cacheTransport := httpcache.NewTransport(httpcache.NewMemoryCache())
+
+	// Assign the original transport of the retry client to be used by the cache when needed.
+	// This means a cache *miss* will trigger the retry logic.
+	cacheTransport.Transport = retryClient.HTTPClient.Transport
+
+	// 3. Update the retryable client to use the new, wrapped transport
+	retryClient.HTTPClient.Transport = cacheTransport
+
+	// Use the *http.Client* from the retryable client for standard http operations
+	localClient = retryClient.HTTPClient
 }
 
 func main() {
