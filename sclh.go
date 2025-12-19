@@ -12,6 +12,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -135,8 +136,10 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveData(w http.ResponseWriter, r *http.Request) {
-	nameList := strings.Split(r.FormValue("characters"), "\n")
-	names := nameList[0:min(maximumNames, len(nameList))]
+	regex, _ := regexp.Compile(`\n{2,}`)
+	temp := regex.ReplaceAllString(r.FormValue("characters"), "\n")
+	nameList := strings.Split(temp, "\n")
+	names := nameList[0:min(maximumNames, len(nameList)-1)]
 	log.Info("Requested Names [" + strings.Join(names[:], ", ") + "]")
 
 	defer func(start time.Time, num int) {
