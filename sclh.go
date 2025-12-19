@@ -1,8 +1,9 @@
 package main
 
 import (
+	"context"
+
 	"crypto/tls"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
@@ -18,21 +19,24 @@ import (
 
 	"golang.org/x/crypto/acme/autocert"
 
+	"github.com/antihax/goesi"
+	json "github.com/goccy/go-json"
+	"github.com/gregjones/httpcache"
 	"github.com/sethgrid/pester"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	maximumNames = 50
-	useFloat     = false
+	userAgent    = "https://sclh.ddns.net Maintainer: kat1248@gmail.com"
 )
 
 var (
-	port           int  // which port to listen on
-	debugMode      bool // are we in debug mode
-	localMode      bool // are we running locally
-	localTransport = &http.Transport{DisableKeepAlives: true}
-	localClient    *pester.Client
+	port         int  // which port to listen on
+	debugMode    bool // are we in debug mode
+	localMode    bool // are we running locally
+	analyzeKills bool // do more analysis on kills
+	localClient  *pester.Client
 )
 
 func init() {
@@ -46,11 +50,14 @@ func init() {
 
 	flag.BoolVar(&debugMode, "debug", false, "debug mode switch")
 	flag.BoolVar(&localMode, "local", false, "run server locally without TLS")
+	flag.BoolVar(&analyzeKills, "kills", false, "do more analysis on kills")
 	flag.Parse()
 
 	if debugMode {
 		log.SetOutput(os.Stdout)
 	}
+
+	localTransport := httpcache.NewTransport(httpcache.NewMemoryCache())
 
 	localClient = pester.New()
 	localClient.Concurrency = 3
@@ -66,6 +73,8 @@ func main() {
 		fmt.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
+	testESI()
+
 	certManager := &autocert.Manager{
 		Cache:      autocert.DirCache("./certs"),
 		Prompt:     autocert.AcceptTOS,
@@ -73,19 +82,22 @@ func main() {
 		HostPolicy: autocert.HostWhitelist("tiggs.ddns.net", "sclh.ddns.net"),
 	}
 
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("images"))))
-	http.HandleFunc("/info", serveData)
-	http.HandleFunc("/", defaultHandler)
-	http.HandleFunc("/health", healthCheckHandler)
-	http.HandleFunc("/favicon.ico", faviconHandler)
+	mux := http.NewServeMux()
+
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	mux.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("images"))))
+	mux.HandleFunc("/info", serveData)
+	mux.HandleFunc("/", defaultHandler)
+	mux.HandleFunc("/health", healthCheckHandler)
+	mux.HandleFunc("/favicon.ico", faviconHandler)
 
 	var httpsPort string = ":443"
 	if localMode {
 		httpsPort = ":8443"
 	}
 	server := &http.Server{
-		Addr: httpsPort,
+		Addr:    httpsPort,
+		Handler: mux,
 		TLSConfig: &tls.Config{
 			GetCertificate: certManager.GetCertificate,
 		},
@@ -93,9 +105,9 @@ func main() {
 
 	if debugMode {
 		log.Println("Listening on port", fmt.Sprint(port))
-		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), nil))
+		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), mux))
 	} else {
-		log.Println("Secure server")
+		log.Println("Secure server", fmt.Sprint(port))
 		go http.ListenAndServe(":"+fmt.Sprint(port), certManager.HTTPHandler(nil))
 
 		log.Fatal(server.ListenAndServeTLS("", ""))
@@ -134,14 +146,12 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 
 	for _, name := range names {
-		wg.Add(1)
-		go func(name string) {
-			defer wg.Done()
+		wg.Go(func() {
 			if len(name) < 3 {
 				return
 			}
 			ch <- fetchCharacterData(name)
-		}(name)
+		})
 	}
 
 	wg.Wait()
@@ -198,4 +208,16 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error())
 		http.Error(w, http.StatusText(500), 500)
 	}
+}
+
+func testESI() {
+	// create ESI client
+	client := goesi.NewAPIClient(nil, userAgent)
+	// call Status endpoint
+	status, _, err := client.ESI.StatusApi.GetStatus(context.Background(), nil)
+	if err != nil {
+		panic(err)
+	}
+	// print current status
+	fmt.Println("Players online: ", status.Players)
 }

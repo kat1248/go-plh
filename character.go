@@ -7,21 +7,20 @@ import (
 	"sync"
 	"time"
 
+	"dario.cat/mergo"
 	json "github.com/goccy/go-json"
-	"github.com/imdario/mergo"
-	cache "zgo.at/zcache"
+	cache "zgo.at/zcache/v2"
 )
 
 const (
 	ccpEsiURL   = "https://esi.evetech.net/latest/"
 	zkillAPIURL = "https://zkillboard.com/api/"
 	zkillURL    = "https://zkillboard.com/"
-	userAgent   = "kat1248@gmail.com - SC Little Helper - sclh.ddns.net"
 )
 
 var (
-	ccpCache   = cache.New(1*time.Hour, 10*time.Minute)
-	zkillCache = cache.New(1*time.Hour, 10*time.Minute)
+	ccpCache   = cache.New[string, any](1*time.Hour, 10*time.Minute)
+	zkillCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
 	nicknames  = map[string]string{
 		"Mynxee":        "Space Mom",
 		"Portia Tigana": "Tiggs"}
@@ -47,11 +46,9 @@ func fetchCharacterData(name string) *characterResponse {
 	var wg sync.WaitGroup
 
 	fetcher := func(f func(int) *characterResponse, id int) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			ch <- f(id)
-		}()
+		})
 	}
 
 	fetcher(fetchCCPRecord, cd.CharacterID)
@@ -79,7 +76,7 @@ func fetchCharacterData(name string) *characterResponse {
 		fetcher(fetchLastKillActivity, cd.CharacterID)
 	}
 
-	if cd.Kills != 0 {
+	if analyzeKills && cd.Kills != 0 {
 		fetcher(fetchKillHistory, cd.CharacterID)
 		fetcher(fetchRecentKillHistory, cd.CharacterID)
 	}
@@ -181,7 +178,7 @@ func fetchCharacterJSON(id int) (string, error) {
 		return "", err
 	}
 
-	ccpCache.Set(ids, string(jsonPayload), cache.DefaultExpiration)
+	ccpCache.Set(ids, string(jsonPayload))
 	return string(jsonPayload), nil
 }
 
@@ -198,7 +195,7 @@ func fetchZKillJSON(id int) (string, error) {
 		return "", err
 	}
 
-	zkillCache.Set(ids, string(jsonPayload), cache.DefaultExpiration)
+	zkillCache.Set(ids, string(jsonPayload))
 	return string(jsonPayload), nil
 }
 
@@ -241,7 +238,7 @@ func loadCharacterIds(names []string) (bool, error) {
 	}
 
 	for _, entry := range entries.Characters {
-		ccpCache.Set(entry.Name, entry.ID, cache.NoExpiration)
+		ccpCache.SetWithExpire(entry.Name, entry.ID, cache.NoExpiration)
 	}
 
 	return true, nil
@@ -281,7 +278,7 @@ func fetchCharacterID(name string) (int, error) {
 	cid := 0
 	cid = entries.Characters[0].ID
 
-	ccpCache.Set(name, cid, cache.NoExpiration)
+	ccpCache.SetWithExpire(name, cid, cache.NoExpiration)
 	return cid, nil
 }
 
@@ -311,7 +308,7 @@ func fetchCorporationName(id int) *characterResponse {
 	}
 
 	cd.CorpName = entry.CorporationName
-	ccpCache.Set(ids, cd.CorpName, cache.NoExpiration)
+	ccpCache.SetWithExpire(ids, cd.CorpName, cache.NoExpiration)
 
 	return &characterResponse{&cd, nil}
 }
@@ -346,7 +343,7 @@ func fetchAllianceName(id int) *characterResponse {
 	}
 
 	cd.AllianceName = entry.AllianceName
-	ccpCache.Set(ids, cd.AllianceName, cache.NoExpiration)
+	ccpCache.SetWithExpire(ids, cd.AllianceName, cache.NoExpiration)
 
 	return &characterResponse{&cd, nil}
 }
@@ -375,7 +372,6 @@ func fetchCorpStartDate(id int) *characterResponse {
 		return &characterResponse{&cd, nil}
 	}
 
-	//cd.CorpAge = daysSince(entries[0].StartDate)
 	cd.CorpAge = secondsToTimeString(secondsSince(entries[0].StartDate))
 
 	return &characterResponse{&cd, nil}
@@ -422,8 +418,7 @@ func fetchItemName(id int) *characterResponse {
 	}
 
 	cd.FavoriteShipName = entries[0].Name
-	fmt.Println("favorite ship =", cd.FavoriteShipName)
-	ccpCache.Set("ship:"+ids, cd.FavoriteShipName, cache.NoExpiration)
+	ccpCache.SetWithExpire("ship:"+ids, cd.FavoriteShipName, cache.NoExpiration)
 
 	return &characterResponse{&cd, nil}
 }
@@ -450,7 +445,7 @@ func fetchCorpDanger(id int) *characterResponse {
 	}
 
 	cd.CorpDanger = z.Danger
-	zkillCache.Set(ids, cd.CorpDanger, cache.DefaultExpiration)
+	zkillCache.Set(ids, cd.CorpDanger)
 
 	return &characterResponse{&cd, nil}
 }

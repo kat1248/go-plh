@@ -47,10 +47,6 @@ func secondsSince(dt string) float64 {
 	return duration.Seconds()
 }
 
-func daysSince(dt string) int {
-	return int(secondsSince(dt)) / secondsInDay
-}
-
 func getDate(dt string) string {
 	return strings.Split(dt, "T")[0]
 }

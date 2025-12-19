@@ -1,10 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
+
+	json "github.com/goccy/go-json"
 )
 
 type zKillCharInfo struct {
@@ -121,27 +122,22 @@ func fetchKillHistory(id int) *characterResponse {
 	shipFreq := make(map[int]int)
 	var wg sync.WaitGroup
 	for i, k := range entries {
-		wg.Add(1)
-		go func(entry zKillMail, last bool) {
-			defer wg.Done()
-
-			km := ccpGetKillMail(entry.ID, entry.Info.Hash)
-			if last {
-				cd.LastKillTime = getDate(km.Time)
-			}
-			for _, attacker := range km.Attackers {
-				if attacker.CharacterID == id {
-					if explorerShips[km.Victim.ShipTypeID] {
-						explorerTotal++
-					}
-					if _, ok := shipFreq[attacker.ShipTypeID]; ok {
+		wg.Go(func() {
+			func(entry zKillMail, last bool) {
+				km := ccpGetKillMail(entry.ID, entry.Info.Hash)
+				if last {
+					cd.LastKillTime = getDate(km.Time)
+				}
+				for _, attacker := range km.Attackers {
+					if attacker.CharacterID == id {
+						if explorerShips[km.Victim.ShipTypeID] {
+							explorerTotal++
+						}
 						shipFreq[attacker.ShipTypeID]++
-					} else {
-						shipFreq[attacker.ShipTypeID] = 1
 					}
 				}
-			}
-		}(k, i == len(entries)-1)
+			}(k, i == len(entries)-1)
+		})
 	}
 	wg.Wait()
 
