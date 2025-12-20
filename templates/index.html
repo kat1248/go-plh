@@ -1,65 +1,82 @@
 {{define "title"}}Signal Cartel's Little Helper{{end}}
 
 {{define "body"}}
-<div id="the-body" class="container">
-    <H1 style="text-align: center; color:gray; background-color:white;padding: 10px;">Signal Cartel's Little Helper</H1>
-    <table id="chars" class="compact stripe order-column hover">
-        <thead>
-            <tr class="header">
-                <th></th>
-                <th></th>
-                <th>Name</th>
-                <th>Age</th>
-                <th>Danger Level</th>
-                <th>Gang %</th>
-                <th>Security</th>
-                <th>Kills</th>
-                <th>Losses</th>
-                <th class="nothumb"></th>
-                <th>Corp</th>
-                <th>Alliance</th>
-                <th>Last Activity</th>
-                <th>Time in Corp</th>
-                <th>Corp ID</th>
-                <th>Corp Danger</th>
-                <th>NPC Corp</th>
-            </tr>
-        </thead>
-        <tfoot>
-            <tr class="header">
-                <th></th>
-                <th></th>
-                <th>Name</th>
-                <th>Age</th>
-                <th>Danger Level</th>
-                <th>Gang %</th>
-                <th>Security</th>
-                <th>Kills</th>
-                <th>Losses</th>
-                <th></th>
-                <th>Corp</th>
-                <th>Alliance</th>
-                <th>Last Activity</th>
-                <th>Time in Corp</th>
-                <th>Corp ID</th>
-                <th>Corp Danger</th>
-                <th>NPC Corp</th>
-            </tr>
-        </tfoot>
-        <tbody>
-        </tbody>
-    </table>
-    <br><br>
-    <form id="names-form" action="" method="POST">
-        <textarea id="name-list" name="characters" placeholder="Enter Character Names (maximum 30)" rows=10
-            cols=35></textarea>
-        <p><button type="button" onclick="sendNames()" maxlength="1000">Submit</button>
-            <button type="reset">Reset</button>
-        </p>
-    </form>
-    <form style="color:black;">
-        <input type="checkbox" onclick="toggleCorpGrouping()" class="group-button" value="group"> Group by
-        Corporation<br>
-    </form>
+<div id="the-body" class="container" role="main">
+    <header class="page-title">
+        <h1>Signal Cartel's Little Helper</h1>
+    </header>
+
+    <section class="table-section" aria-label="Character statistics">
+        <div class="table-wrapper">
+            <table id="chars" class="compact stripe order-column hover" role="table">
+                <caption class="sr-only">List of characters with details including age, danger level, and affiliations
+                </caption>
+                <thead>
+                    <tr class="header" role="row">
+                        <th scope="col" aria-hidden="true"></th>
+                        <th scope="col" aria-hidden="true"></th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Age</th>
+                        <th scope="col">Danger Level</th>
+                        <th scope="col">Gang %</th>
+                        <th scope="col">Security</th>
+                        <th scope="col">Kills</th>
+                        <th scope="col">Losses</th>
+                        <th scope="col" class="nothumb"></th>
+                        <th scope="col">Corp</th>
+                        <th scope="col">Alliance</th>
+                        <th scope="col">Last Activity</th>
+                        <th scope="col">Time in Corp</th>
+                        <th scope="col">Corp ID</th>
+                        <th scope="col">Corp Danger</th>
+                        <th scope="col">NPC Corp</th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr class="header" role="row">
+                        <th aria-hidden="true"></th>
+                        <th aria-hidden="true"></th>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Danger Level</th>
+                        <th>Gang %</th>
+                        <th>Security</th>
+                        <th>Kills</th>
+                        <th>Losses</th>
+                        <th></th>
+                        <th>Corp</th>
+                        <th>Alliance</th>
+                        <th>Last Activity</th>
+                        <th>Time in Corp</th>
+                        <th>Corp ID</th>
+                        <th>Corp Danger</th>
+                        <th>NPC Corp</th>
+                    </tr>
+                </tfoot>
+                <tbody>
+                    <!-- Data will be injected here -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="form-section" aria-labelledby="name-list-form">
+        <form id="names-form" action="" method="POST">
+            <label for="name-list">Enter Character Names (maximum 30)</label>
+            <textarea id="name-list" name="characters" rows="10" cols="35"></textarea>
+            <div class="form-buttons">
+                <button type="button" onclick="sendNames()">Submit</button>
+                <button type="reset">Reset</button>
+            </div>
+        </form>
+
+        <form class="group-form">
+            <label>
+                <input type="checkbox" onclick="toggleCorpGrouping()" class="group-button" value="group">
+                Group by Corporation
+            </label>
+        </form>
+    </section>
 </div>
+
 {{end}}
