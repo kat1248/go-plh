@@ -1,0 +1,16 @@
+{
+  "name": "go-plh",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "lint": "eslint 'static/**/*.js' --fix",
+    "format": "prettier --write 'static/**/*.js'",
+    "check": "npm run lint && npm run format -- --check"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-security": "^3.0.1",
+    "prettier": "^3.7.4"
+  }
+}
