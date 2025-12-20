@@ -212,6 +212,37 @@ $(document).ready(function () {
   toggleCorpGrouping();
   document.getElementById('chars').addEventListener('paste', handlePaste);
 
+  // Textarea removed — paste anywhere is handled by the global handler
+
+
+  // Global paste handler: submit pasted text as names unless paste is into an editable field
+  document.addEventListener('paste', function (e) {
+    try {
+      const clipboardData = e.clipboardData || window.clipboardData;
+      const pastedData = clipboardData && clipboardData.getData ? clipboardData.getData('Text') : '';
+      if (!pastedData) return;
+
+      // Ignore pastes into input, textarea or contenteditable elements so normal typing/paste works
+      const tgt = e.target;
+      const editable = tgt && ((tgt.closest && tgt.closest('input, textarea, [contenteditable="true"]')) || tgt.isContentEditable);
+      if (editable) return;
+
+      // Update the textarea for visibility/usability
+      const textarea = document.getElementById('name-list');
+      if (textarea) {
+        textarea.value = pastedData;
+        try {
+          textarea.classList.add('paste-flash');
+          setTimeout(function () { textarea.classList.remove('paste-flash'); }, 900);
+        } catch (err) { /* ignore */ }
+      }
+      // Submit pasted content as names
+      postNames(pastedData);
+    } catch (err) {
+      console.error('global paste handler error', err);
+    }
+  });
+
   $('#chars tbody').on('click', 'td.details-control', function () {
     const tr = $(this).parents('tr');
     const row = table.row(tr);

@@ -51,15 +51,10 @@
     </table>
     <br><br>
     <form id="names-form" action="" method="POST">
-        <textarea id="name-list" name="characters" placeholder="Enter Character Names (maximum 30)" rows=10
-            cols=35></textarea>
-        <p><button type="button" onclick="sendNames()" maxlength="1000">Submit</button>
-            <button type="reset">Reset</button>
-        </p>
-        <form style="color:black;">
-            <input type="checkbox" onclick="toggleCorpGrouping()" class="group-button" value="group"> Group by
-            Corporation<br>
-        </form>
+        <!-- Name input removed — paste names anywhere on the page to submit -->
+        <div style="color:black;">
+            <input type="checkbox" onclick="toggleCorpGrouping()" class="group-button" value="group"> Group by Corporation<br>
+        </div>
     </form>
 </div>
 {{end}}
