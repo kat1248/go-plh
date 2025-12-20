@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is a utility for Eve Online, it looks up a list of characters and presents threat data. 
+This is a utility for Eve Online, it looks up a list of characters and presents threat data.
 I have been a user of [Pirate's Little Helper](eve-plh.com) for awhile and this is
 intended to replace that service for the Eve corporation, [Signal Cartel](http://www.eve-scout.com/signal-cartel/).
 
