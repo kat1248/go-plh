@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	json "github.com/goccy/go-json"
+	cache "zgo.at/zcache/v2"
 )
 
 type zKillCharInfo struct {
@@ -31,11 +33,19 @@ type zKillMail struct {
 	Info zKillMailInfo `json:"zkb"`
 }
 
-const (
+var (
 	computeFavoriteShip = false
+	killmailCache       = cache.New[string, any](1*time.Hour, 10*time.Minute)
 )
 
 func ccpGetKillMail(ctx context.Context, id int, hash string) *killMail {
+	// check cache first
+	key := fmt.Sprintf("%d:%s", id, hash)
+	if rec, found := killmailCache.Get(key); found {
+		km := rec.(killMail)
+		return &km
+	}
+
 	km := killMail{}
 
 	ids := fmt.Sprint(id)
@@ -46,6 +56,9 @@ func ccpGetKillMail(ctx context.Context, id int, hash string) *killMail {
 	if err := json.Unmarshal(jsonPayload, &km); err != nil {
 		return &km
 	}
+
+	// store in cache (respecting cache TTL)
+	killmailCache.Set(key, km)
 
 	return &km
 }

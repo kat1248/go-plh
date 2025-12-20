@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	cache "zgo.at/zcache/v2"
 )
 
 func TestFetchRecentKillHistory_Counts(t *testing.T) {
@@ -180,5 +182,92 @@ func TestFetchKillHistory_ContextCancelled(t *testing.T) {
 	r := fetchKillHistory(ctx, 123)
 	if r.err == nil {
 		t.Fatalf("expected error due to context cancel, got nil")
+	}
+}
+
+func TestKillmailCache_Basic(t *testing.T) {
+	// server that counts killmail hits
+	hits := 0
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/kills/characterID/123/":
+			_ = json.NewEncoder(w).Encode([]zKillMail{{ID: 1, Info: zKillMailInfo{Hash: "h1"}}})
+			return
+		case "/killmails/1/h1/":
+			hits++
+			_ = json.NewEncoder(w).Encode(killMail{Time: "2020-01-01T00:00:00Z", Victim: zKillCharInfo{ShipTypeID: 33468}, Attackers: []zKillCharInfo{{CharacterID: 123, ShipTypeID: 11188}}})
+			return
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer s.Close()
+
+	origZkill := zkillAPIURL
+	origCcp := ccpEsiURL
+	zkillAPIURL = s.URL + "/"
+	ccpEsiURL = s.URL + "/"
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
+
+	// reset cache
+	killmailCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
+
+	r := fetchKillHistory(context.Background(), 123)
+	if r.err != nil {
+		t.Fatalf("unexpected err: %v", r.err)
+	}
+
+	r = fetchKillHistory(context.Background(), 123)
+	if r.err != nil {
+		t.Fatalf("unexpected err on second call: %v", r.err)
+	}
+
+	if hits != 1 {
+		t.Fatalf("expected killmail endpoint to be hit once, got %d", hits)
+	}
+}
+
+func TestKillmailCache_Expiration(t *testing.T) {
+	// server that counts killmail hits
+	hits := 0
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/kills/characterID/123/":
+			_ = json.NewEncoder(w).Encode([]zKillMail{{ID: 1, Info: zKillMailInfo{Hash: "h1"}}})
+			return
+		case "/killmails/1/h1/":
+			hits++
+			_ = json.NewEncoder(w).Encode(killMail{Time: "2020-01-01T00:00:00Z", Victim: zKillCharInfo{ShipTypeID: 33468}, Attackers: []zKillCharInfo{{CharacterID: 123, ShipTypeID: 11188}}})
+			return
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer s.Close()
+
+	origZkill := zkillAPIURL
+	origCcp := ccpEsiURL
+	zkillAPIURL = s.URL + "/"
+	ccpEsiURL = s.URL + "/"
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
+
+	// short TTL cache for test
+	killmailCache = cache.New[string, any](50*time.Millisecond, 10*time.Millisecond)
+
+	r := fetchKillHistory(context.Background(), 123)
+	if r.err != nil {
+		t.Fatalf("unexpected err: %v", r.err)
+	}
+
+	// wait for TTL to expire
+	time.Sleep(100 * time.Millisecond)
+
+	r = fetchKillHistory(context.Background(), 123)
+	if r.err != nil {
+		t.Fatalf("unexpected err on second call: %v", r.err)
+	}
+
+	if hits != 2 {
+		t.Fatalf("expected killmail endpoint to be hit twice after expiration, got %d", hits)
 	}
 }
