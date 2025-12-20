@@ -4,11 +4,11 @@ const eve_image_server = "https://images.evetech.net"
 
 function escapeHtml(str) {
     return String(str == null ? '' : str).replace(/[&<>"']/g, function (s) {
-        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s];
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s];
     });
 }
 
-let table;"
+let table; "
 
 var dataFormatting = (function () {
     return {
@@ -88,7 +88,7 @@ function postNames(names) {
         .always(function () {
             $("html").removeClass("wait");
         });
-} 
+}
 
 function sendNames() {
     var names = document.getElementById('name-list').value;
@@ -109,7 +109,7 @@ function groupRow(group, alliance_name, corp_id, corp_danger, npc_corp) {
     }
     const name = `<td ${corp_class}>${escapeHtml(group)}${alliance}</td>`;
     return img + name;
-} 
+}
 
 function toggleCorpGrouping() {
     const chk = document.querySelector('.group-button');
@@ -126,7 +126,7 @@ function toggleCorpGrouping() {
     table.column('corp_name').visible(!group, false);
     table.column('alliance_name').visible(!group, false);
     table.draw();
-} 
+}
 
 function handlePaste(e) {
     // Stop data actually being pasted into div
@@ -137,7 +137,7 @@ function handlePaste(e) {
     const clipboardData = e.clipboardData || window.clipboardData;
     const pastedData = clipboardData && clipboardData.getData ? clipboardData.getData('Text') : '';
     if (pastedData) postNames(pastedData);
-} 
+}
 
 function formatKills(d) {
     // `d` is the original data object for the row
@@ -150,6 +150,7 @@ function formatKills(d) {
               <td>Total Killed</td>
               <td class="dt-body-center">Since</td>
               <td>Kills in Last Week</td>
+              // <td>Favorite Ship</td>
             </tr></thead>
             <tbody>
               <tr>
@@ -157,6 +158,7 @@ function formatKills(d) {
                 <td class="dt-body-center">${d.recent_kill_total}</td>
                 <td class="dt-body-center">${escapeHtml(d.last_kill_time)}</td>
                 <td class="dt-body-center">${d.kills_last_week}</td>
+                // <td class="dt-body-center">${escapeHtml(d.favorite_ship_name)}</td>
               </tr>
             </tbody>
           </table>`;
