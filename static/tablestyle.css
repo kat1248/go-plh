@@ -39,8 +39,34 @@ table.dataTable tfoot th {
     border-top: 1px solid var(--dt-border-strong);
 }
 
-table.dataTable tbody tr:nth-child(even) {
-    background: var(--dt-bg-alt);
+table.dataTable.display tbody tr.even>.sorting_1,
+table.dataTable.order-column.stripe tbody tr.even>.sorting_1 {
+    background-color: #f9f9f9;
+}
+
+table.dataTable.display tbody tr.even>.sorting_2,
+table.dataTable.order-column.stripe tbody tr.even>.sorting_2 {
+    background-color: #fbfbfb;
+}
+
+table.dataTable.display tbody tr.even>.sorting_3,
+table.dataTable.order-column.stripe tbody tr.even>.sorting_3 {
+    background-color: #fdfdfd;
+}
+
+table.dataTable.display tbody tr.even.selected>.sorting_1,
+table.dataTable.order-column.stripe tbody tr.even.selected>.sorting_1 {
+    background-color: #acbad4;
+}
+
+table.dataTable.display tbody tr.even.selected>.sorting_2,
+table.dataTable.order-column.stripe tbody tr.even.selected>.sorting_2 {
+    background-color: #adbbd6;
+}
+
+table.dataTable.display tbody tr.even.selected>.sorting_3,
+table.dataTable.order-column.stripe tbody tr.even.selected>.sorting_3 {
+    background-color: #afbdd8;
 }
 
 table.dataTable tbody tr:hover {
