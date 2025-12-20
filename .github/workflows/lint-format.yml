@@ -1,0 +1,43 @@
+name: Lint & Format
+
+on:
+  push:
+    branches: [ '**' ]
+    paths:
+      - 'static/**'
+      - 'package.json'
+      - '.eslintrc.json'
+      - '.prettierrc'
+      - 'eslint.config.cjs'
+      - '.github/**'
+  pull_request:
+    paths:
+      - 'static/**'
+      - 'package.json'
+      - '.eslintrc.json'
+      - '.prettierrc'
+      - 'eslint.config.cjs'
+      - '.github/**'
+
+jobs:
+  lint-format:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint (no auto-fix)
+        run: npx eslint 'static/**/*.js' --max-warnings=0
+
+      - name: Run Prettier check
+        run: npx prettier --check 'static/**/*.js'
