@@ -1,6 +1,9 @@
+/* Import a clean, readable web font (Inter) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
 :root {
     /* Fonts */
-    --font-body: "static", sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
     /* Colors */
     --color-bg-page: #000;
@@ -35,23 +38,6 @@ html.wait * {
     cursor: var(--cursor-wait) !important;
 }
 
-/* Fonts */
-@font-face {
-    font-family: "static";
-    src: url("static.woff");
-}
-
-@font-face {
-    font-family: "static";
-    font-weight: bold;
-    src: url("staticbold.woff");
-}
-
-@font-face {
-    font-family: "static";
-    font-style: italic;
-    src: url("staticitalic.woff");
-}
 
 /* Thumbnail cells */
 td.thumb,
@@ -161,6 +147,8 @@ body {
     font-family: var(--font-body);
     font-size: 14px;
     background-color: var(--color-bg-page);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
