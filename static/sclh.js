@@ -14,14 +14,14 @@ const dataFormatting = (function () {
     return {
         char_name: function (data, type, row) {
             if (row.has_killboard) {
-                const url = `${eve_image_server}/character/${row.character_id}/`;
+                const url = `${eve_image_server}/characters/${row.character_id}/portrait`;
                 return `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(row.name)}</a>`;
             } else {
                 return data;
             }
         },
         corp_name: function (data, type, row) {
-            const url = `${eve_image_server}/corporation/${row.corp_id}/`;
+            const url = `${eve_image_server}/corporations/${row.corp_id}/logo`;
             return `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(row.corp_name)}</a>`;
         },
         char_thumb: function (data, type, row) {

@@ -136,7 +136,7 @@ func fetchLastKillActivity(ctx context.Context, id int) *characterResponse {
 		what = "kill"
 	}
 
-	cd.LastKill = what + " " + when
+	cd.LastKill = when + "(" + what + ")"
 
 	return &characterResponse{&cd, nil}
 }
