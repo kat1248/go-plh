@@ -2,27 +2,35 @@
 
 const eve_image_server = "https://images.evetech.net"
 
-var table;
+function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function (s) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s];
+    });
+}
+
+let table;"
 
 var dataFormatting = (function () {
     return {
         char_name: function (data, type, row) {
             if (row.has_killboard) {
-                return '<a href="{0}/character/{1}/" target="_blank" rel="noopener">{2}</a>'.format(eve_image_server, row.character_id, row.name);
+                const url = `${eve_image_server}/character/${row.character_id}/`;
+                return `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(row.name)}</a>`;
             } else {
                 return data;
             }
         },
         corp_name: function (data, type, row) {
-            return '<a href="{0}/corporation/{1}/" target="_blank" rel="noopener">{2}</a>'.format(eve_image_server, row.corp_id, row.corp_name);
+            const url = `${eve_image_server}/corporation/${row.corp_id}/`;
+            return `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(row.corp_name)}</a>`;
         },
         char_thumb: function (data, type, row) {
-            var img = '<img src="{0}/characters/{1}/portrait" height="32" width="32" alt="{2} thumbnail" align="middle">'.format(eve_image_server, row.character_id, row.name);
-            var span = '<span><img src="{0}/characters/{1}/portrait" height="512" width="512" alt="{2} portrait"></span>'.format(eve_image_server, row.character_id, row.name);
+            const img = `<img src="${eve_image_server}/characters/${row.character_id}/portrait" height="32" width="32" alt="${escapeHtml(row.name)} thumbnail" align="middle">`;
+            const span = `<span><img src="${eve_image_server}/characters/${row.character_id}/portrait" height="512" width="512" alt="${escapeHtml(row.name)} portrait"></span>`;
             return img + span;
         },
         corp_thumb: function (data, type, row) {
-            return '<img src="{0}/corporations/{1}/logo" height="32" width="32" alt="{2} thumbnail" title="Corporation Danger Level: {3}" align="middle">'.format(eve_image_server, row.corp_id, row.corp_name, row.corp_danger);
+            return `<img src="${eve_image_server}/corporations/${row.corp_id}/logo" height="32" width="32" alt="${escapeHtml(row.corp_name)} thumbnail" title="Corporation Danger Level: ${row.corp_danger}" align="middle">`;
         },
         corp_age: function (data, type, row) {
             return data;
@@ -61,23 +69,26 @@ var dataFormatting = (function () {
     }
 })();
 
-String.prototype.format = function () {
-    var args = arguments;
-    return this.replace(/\{(\d+)\}/g, function (m, n) { return args[n]; });
-}
+// Removed String.prototype.format to avoid altering built-in prototypes. Use template literals and escapeHtml instead.
 
 function postNames(names) {
-    $(document).ajaxStart(function () { $("html").addClass("wait"); });
-    $.post("info",
-        { characters: names },
-        function (data, status) {
+    $("html").addClass("wait");
+    $.post("info", { characters: names })
+        .done(function (data) {
             table.clear();
             table.rows.add(data);
             table.draw();
-            document.getElementById('names-form').reset();
-            $(document).ajaxStop(function () { $("html").removeClass("wait"); });
+            var form = document.getElementById('names-form');
+            if (form) form.reset();
+        })
+        .fail(function () {
+            // Keep this small; consider showing a user-visible error UI
+            console.error('Failed to fetch character info');
+        })
+        .always(function () {
+            $("html").removeClass("wait");
         });
-}
+} 
 
 function sendNames() {
     var names = document.getElementById('name-list').value;
@@ -85,23 +96,25 @@ function sendNames() {
 }
 
 function groupRow(group, alliance_name, corp_id, corp_danger, npc_corp) {
-    var img = '<td class="blank_thumb"><img src="{0}/corporations/{1}/logo" height="32" width="32"></td>'.format(eve_image_server, corp_id);
-    var corp_class = "";
+    const img = `<td class="blank_thumb"><img src="${eve_image_server}/corporations/${corp_id}/logo" height="32" width="32"></td>`;
+    let corp_class = "";
     if (corp_danger > 50) {
         corp_class = 'class="danger"';
     } else if (npc_corp) {
         corp_class = 'class="safe"';
     }
-    var alliance = "";
-    if (alliance_name != "") {
-        alliance = '  ({0})'.format(alliance_name);
+    let alliance = "";
+    if (alliance_name !== "") {
+        alliance = `  (${escapeHtml(alliance_name)})`;
     }
-    var name = '<td {0}>{1}{2}</td>'.format(corp_class, group, alliance);
+    const name = `<td ${corp_class}>${escapeHtml(group)}${alliance}</td>`;
     return img + name;
-}
+} 
 
 function toggleCorpGrouping() {
-    var group = document.querySelector('.group-button').checked;
+    const chk = document.querySelector('.group-button');
+    if (!chk) return;
+    const group = chk.checked;
     if (group) {
         table.column(10).order('asc');
         table.rowGroup().enable();
@@ -113,41 +126,40 @@ function toggleCorpGrouping() {
     table.column('corp_name').visible(!group, false);
     table.column('alliance_name').visible(!group, false);
     table.draw();
-}
+} 
 
 function handlePaste(e) {
-    var clipboardData, pastedData;
-
     // Stop data actually being pasted into div
     e.stopPropagation();
     e.preventDefault();
 
     // Get pasted data via clipboard API
-    clipboardData = e.clipboardData || window.clipboardData;
-    pastedData = clipboardData.getData('Text');
-    postNames(pastedData)
-}
+    const clipboardData = e.clipboardData || window.clipboardData;
+    const pastedData = clipboardData && clipboardData.getData ? clipboardData.getData('Text') : '';
+    if (pastedData) postNames(pastedData);
+} 
 
 function formatKills(d) {
     // `d` is the original data object for the row
-    if (d.kills == 0) {
-        return ''
+    if (d.kills === 0) {
+        return '';
     } else {
-        return '<table class="embedded">' +
-            '<thead><tr>' +
-            '<td>Explorer Ships Killed</td>' +
-            '<td>Total Killed</td>' +
-            '<td class="dt-body-center">Since</td>' +
-            '<td>Kills in Last Week</td>' +
-            //'<td>Favorite Ship</td>' +
-            '</tr></thead>' +
-            '<tbody>' +
-            '<tr><td class="dt-body-center">' + d.recent_explorer_total +
-            '<td class="dt-body-center">' + d.recent_kill_total + '</td>' +
-            '<td class="dt-body-center">' + d.last_kill_time + '</td>' +
-            '<td class="dt-body-center">' + d.kills_last_week + '</td>' +
-            //'<td class="dt-body-center">' + d.favorite_ship_name + '</td>' +
-            '</tr></tbody></table>';
+        return `<table class="embedded">
+            <thead><tr>
+              <td>Explorer Ships Killed</td>
+              <td>Total Killed</td>
+              <td class="dt-body-center">Since</td>
+              <td>Kills in Last Week</td>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td class="dt-body-center">${d.recent_explorer_total}</td>
+                <td class="dt-body-center">${d.recent_kill_total}</td>
+                <td class="dt-body-center">${escapeHtml(d.last_kill_time)}</td>
+                <td class="dt-body-center">${d.kills_last_week}</td>
+              </tr>
+            </tbody>
+          </table>`;
     }
 }
 

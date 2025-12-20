@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	json "github.com/goccy/go-json"
+	cache "zgo.at/zcache/v2"
 )
 
 type zKillCharInfo struct {
@@ -31,20 +33,69 @@ type zKillMail struct {
 	Info zKillMailInfo `json:"zkb"`
 }
 
-const (
+var (
 	computeFavoriteShip = false
+	killmailCache       = cache.New[string, any](1*time.Hour, 10*time.Minute)
 )
 
-func ccpGetKillMail(ctx context.Context, id int, hash string) *killMail {
-	km := killMail{}
+// singleflight for killmail fetches to deduplicate inflight requests
+var killmailSingleFlight struct {
+	mu sync.Mutex
+	m  map[string]*inflight
+}
 
-	ids := fmt.Sprint(id)
-	jsonPayload, err := ccpGet(ctx, "killmails/"+ids+"/"+hash+"/", nil)
-	if err != nil {
+type inflight struct {
+	wg  sync.WaitGroup
+	res *killMail
+	err error
+}
+
+func ccpGetKillMail(ctx context.Context, id int, hash string) *killMail {
+	// check cache first
+	key := fmt.Sprintf("%d:%s", id, hash)
+	if rec, found := killmailCache.Get(key); found {
+		km := rec.(killMail)
 		return &km
 	}
-	if err := json.Unmarshal(jsonPayload, &km); err != nil {
-		return &km
+
+	// singleflight: check or join inflight
+	killmailSingleFlight.mu.Lock()
+	if killmailSingleFlight.m == nil {
+		killmailSingleFlight.m = make(map[string]*inflight)
+	}
+	if in, ok := killmailSingleFlight.m[key]; ok {
+		// join existing inflight - leader has already added to the WaitGroup
+		killmailSingleFlight.mu.Unlock()
+		in.wg.Wait()
+		// even on error, return what the leader got
+		return in.res
+	}
+	// become the leader
+	in := &inflight{}
+	in.wg.Add(1)
+	killmailSingleFlight.m[key] = in
+	killmailSingleFlight.mu.Unlock()
+
+	// leader fetches the killmail
+	km := killMail{}
+	ids := fmt.Sprint(id)
+	jsonPayload, err := ccpGet(ctx, "killmails/"+ids+"/"+hash+"/", nil)
+	if err == nil {
+		if err := json.Unmarshal(jsonPayload, &km); err != nil {
+			err = err
+		}
+	}
+
+	// store result and wake up waiters
+	killmailSingleFlight.mu.Lock()
+	in.res = &km
+	in.err = err
+	in.wg.Done()
+	delete(killmailSingleFlight.m, key)
+	killmailSingleFlight.mu.Unlock()
+
+	if err == nil {
+		killmailCache.Set(key, km)
 	}
 
 	return &km
