@@ -4,3 +4,4 @@ vendor
 *~
 *.exe
 certs/
+node_modules/

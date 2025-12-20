@@ -1,0 +1,38 @@
+name: Run Race Detector
+
+# Manual trigger for reviewers to run the Go race detector on demand
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run the race detector against (use branch name)' 
+        required: true
+        default: 'main'
+
+jobs:
+  run-race:
+    name: Run Go Race Detector
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run go test (race)
+        run: go test -race ./... -v
