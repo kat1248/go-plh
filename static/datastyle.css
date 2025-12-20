@@ -176,17 +176,6 @@ form {
     background-color: var(--color-bg-surface);
 }
 
-/* title */
-.page-title h1 {
-    text-align: center;
-    color: var(--color-text-muted);
-    padding: 10px;
-    font-size: 1.5em;
-    font-weight: bold;
-}
-
-/* style="text-align: center; color:gray; background-color:white;" */
-
 /* Footer */
 #footer {
     width: 80%;
