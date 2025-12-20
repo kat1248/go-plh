@@ -22,6 +22,9 @@ on:
 jobs:
   lint-format:
     name: Lint & Format Check
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -44,6 +47,9 @@ jobs:
 
   go-test:
     name: Go Tests
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -69,6 +75,9 @@ jobs:
 
   go-test-race:
     name: Go Race Tests (limited)
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
