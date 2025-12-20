@@ -1,8 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"fmt"
-	"sort"
 	"sync"
 
 	json "github.com/goccy/go-json"
@@ -34,11 +35,11 @@ const (
 	computeFavoriteShip = false
 )
 
-func ccpGetKillMail(id int, hash string) *killMail {
+func ccpGetKillMail(ctx context.Context, id int, hash string) *killMail {
 	km := killMail{}
 
 	ids := fmt.Sprint(id)
-	jsonPayload, err := ccpGet("killmails/"+ids+"/"+hash+"/", nil)
+	jsonPayload, err := ccpGet(ctx, "killmails/"+ids+"/"+hash+"/", nil)
 	if err != nil {
 		return &km
 	}
@@ -49,12 +50,12 @@ func ccpGetKillMail(id int, hash string) *killMail {
 	return &km
 }
 
-func fetchLastKillActivity(id int) *characterResponse {
+func fetchLastKillActivity(ctx context.Context, id int) *characterResponse {
 	cd := characterData{LastKill: ""}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet("characterID/" + ids + "/")
+	jsonPayload, err := zkillGet(ctx, "characterID/"+ids+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -69,7 +70,7 @@ func fetchLastKillActivity(id int) *characterResponse {
 		return &characterResponse{&cd, fmt.Errorf("no kills for id %s", ids)}
 	}
 
-	km := ccpGetKillMail(entries[0].ID, entries[0].Info.Hash)
+	km := ccpGetKillMail(ctx, entries[0].ID, entries[0].Info.Hash)
 
 	when := getDate(km.Time)
 	who := km.Victim.CharacterID
@@ -89,14 +90,14 @@ func fetchLastKillActivity(id int) *characterResponse {
 	return &characterResponse{&cd, nil}
 }
 
-func fetchKillHistory(id int) *characterResponse {
+func fetchKillHistory(ctx context.Context, id int) *characterResponse {
 	cd := characterData{
 		RecentExplorerTotal: 0, RecentKillTotal: 0, LastKillTime: "",
 		FavoriteShipID: 0, FavoriteShipCount: 0}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet("kills/characterID/" + ids + "/")
+	jsonPayload, err := zkillGet(ctx, "kills/characterID/"+ids+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -120,67 +121,98 @@ func fetchKillHistory(id int) *characterResponse {
 
 	explorerTotal := 0
 	shipFreq := make(map[int]int)
+	var mu sync.Mutex
+	// cap concurrency to avoid rate limiting and spikes
+	sem := make(chan struct{}, 10)
 	var wg sync.WaitGroup
 	for i, k := range entries {
-		wg.Go(func() {
-			func(entry zKillMail, last bool) {
-				km := ccpGetKillMail(entry.ID, entry.Info.Hash)
-				if last {
-					cd.LastKillTime = getDate(km.Time)
-				}
-				for _, attacker := range km.Attackers {
-					if attacker.CharacterID == id {
-						if explorerShips[km.Victim.ShipTypeID] {
-							explorerTotal++
-						}
-						shipFreq[attacker.ShipTypeID]++
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(entry zKillMail, last bool) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			km := ccpGetKillMail(ctx, entry.ID, entry.Info.Hash)
+			if km == nil {
+				return
+			}
+			localExplorer := 0
+			localFreq := make(map[int]int)
+			for _, attacker := range km.Attackers {
+				if attacker.CharacterID == id {
+					if explorerShips[km.Victim.ShipTypeID] {
+						localExplorer++
 					}
+					localFreq[attacker.ShipTypeID]++
 				}
-			}(k, i == len(entries)-1)
-		})
+			}
+			mu.Lock()
+			if last {
+				cd.LastKillTime = getDate(km.Time)
+			}
+			explorerTotal += localExplorer
+			for ship, cnt := range localFreq {
+				shipFreq[ship] += cnt
+			}
+			mu.Unlock()
+		}(k, i == len(entries)-1)
 	}
 	wg.Wait()
 
 	cd.RecentExplorerTotal = explorerTotal
 
 	if computeFavoriteShip {
-		// sort the ships by freq
-		hack := map[int]int{}
-		hackkeys := []int{}
-		for key, val := range shipFreq {
-			hack[val] = key
-			hackkeys = append(hackkeys, val)
+		// pick the ship with the highest count
+		bestID := 0
+		bestCnt := 0
+		for ship, cnt := range shipFreq {
+			if cnt > bestCnt {
+				bestCnt = cnt
+				bestID = ship
+			}
 		}
-		sort.Sort(sort.Reverse(sort.IntSlice(hackkeys)))
-
-		//for _, val := range hackkeys {
-		//	fmt.Println("ship", hack[val], "times", val)
-		//}
-		//fmt.Println("favorite ship type", hack[hackkeys[0]], "used", hackkeys[0], "times")
-
-		cd.FavoriteShipID = hack[hackkeys[0]]
-		cd.FavoriteShipCount = hackkeys[0]
+		cd.FavoriteShipID = bestID
+		cd.FavoriteShipCount = bestCnt
 	}
 
 	return &characterResponse{&cd, nil}
 }
 
-func fetchRecentKillHistory(id int) *characterResponse {
+func fetchRecentKillHistory(ctx context.Context, id int) *characterResponse {
 	cd := characterData{KillsLastWeek: 0}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet("kills/characterID/" + ids + "/pastSeconds/" + fmt.Sprint(secondsInWeek) + "/")
+	jsonPayload, err := zkillGet(ctx, "kills/characterID/"+ids+"/pastSeconds/"+fmt.Sprint(secondsInWeek)+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
 
-	entries := make([]killMail, 0)
-
-	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
+	// stream the JSON array and count elements without allocating the whole slice
+	dec := json.NewDecoder(bytes.NewReader(jsonPayload))
+	// expect an array
+	tkn, err := dec.Token()
+	if err != nil {
 		return &characterResponse{&cd, err}
 	}
-	cd.KillsLastWeek = len(entries)
+	if delim, ok := tkn.(json.Delim); !ok || delim != '[' {
+		// fallback to full unmarshal if not an array
+		entries := make([]killMail, 0)
+		if err := json.Unmarshal(jsonPayload, &entries); err != nil {
+			return &characterResponse{&cd, err}
+		}
+		cd.KillsLastWeek = len(entries)
+		return &characterResponse{&cd, nil}
+	}
+
+	count := 0
+	for dec.More() {
+		var km killMail
+		if err := dec.Decode(&km); err != nil {
+			return &characterResponse{&cd, err}
+		}
+		count++
+	}
+	cd.KillsLastWeek = count
 
 	return &characterResponse{&cd, nil}
 }

@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 )
 
-func fetchURL(method, url string, params map[string]string, body io.Reader) ([]byte, error) {
-	req, err := http.NewRequest(method, url, body)
+func fetchURL(ctx context.Context, method, url string, params map[string]string, body io.Reader) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -41,16 +42,16 @@ func fetchURL(method, url string, params map[string]string, body io.Reader) ([]b
 	return respBody, nil
 }
 
-func ccpGet(url string, params map[string]string) ([]byte, error) {
-	return fetchURL(http.MethodGet, ccpEsiURL+url, params, nil)
+func ccpGet(ctx context.Context, url string, params map[string]string) ([]byte, error) {
+	return fetchURL(ctx, http.MethodGet, ccpEsiURL+url, params, nil)
 }
 
-func ccpPost(url string, params map[string]string, body io.Reader) ([]byte, error) {
-	return fetchURL(http.MethodPost, ccpEsiURL+url, params, body)
+func ccpPost(ctx context.Context, url string, params map[string]string, body io.Reader) ([]byte, error) {
+	return fetchURL(ctx, http.MethodPost, ccpEsiURL+url, params, body)
 }
 
-func zkillGet(url string) ([]byte, error) {
-	return fetchURL(http.MethodGet, zkillAPIURL+url, nil, nil)
+func zkillGet(ctx context.Context, url string) ([]byte, error) {
+	return fetchURL(ctx, http.MethodGet, zkillAPIURL+url, nil, nil)
 }
 
 // func zkillCheck() bool {

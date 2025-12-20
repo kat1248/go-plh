@@ -150,7 +150,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		}).Info("Handled request")
 	}(time.Now(), len(names))
 
-	success, err := loadCharacterIds(names)
+	success, err := loadCharacterIds(r.Context(), names)
 	if !success {
 		log.Error(err)
 	}
@@ -160,12 +160,15 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 
 	for _, name := range names {
-		wg.Go(func() {
-			if len(name) < 3 {
-				return
-			}
-			ch <- fetchCharacterData(name)
-		})
+		name := name
+		if len(name) < 3 {
+			continue
+		}
+		wg.Add(1)
+		go func(n string) {
+			defer wg.Done()
+			ch <- fetchCharacterData(r.Context(), n)
+		}(name)
 	}
 
 	wg.Wait()
