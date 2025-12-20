@@ -52,7 +52,6 @@ func init() {
 	flag.BoolVar(&debugMode, "debug", false, "debug mode switch")
 	flag.BoolVar(&localMode, "local", false, "run server locally without TLS")
 	flag.BoolVar(&analyzeKills, "kills", false, "do more analysis on kills")
-	flag.Parse()
 
 	if debugMode {
 		log.SetOutput(os.Stdout)
@@ -79,6 +78,9 @@ func init() {
 }
 
 func main() {
+	// parse flags here so tests do not trip over test flags
+	flag.Parse()
+
 	// server for pprof
 	go func() {
 		fmt.Println(http.ListenAndServe("localhost:6060", nil))

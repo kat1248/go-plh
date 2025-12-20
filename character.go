@@ -13,7 +13,7 @@ import (
 	cache "zgo.at/zcache/v2"
 )
 
-const (
+var (
 	ccpEsiURL   = "https://esi.evetech.net/latest/"
 	zkillAPIURL = "https://zkillboard.com/api/"
 	zkillURL    = "https://zkillboard.com/"
