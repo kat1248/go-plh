@@ -27,6 +27,7 @@ type characterData struct {
 	FavoriteShipCount   int     `json:"favorite_ship_count"`
 	FavoriteShipName    string  `json:"favorite_ship_name"`
 	ZkillUsed           bool    `json:"zkill_used"`
+	AnalyzeKills        bool    `json:"analyze_kills"`
 }
 
 type characterResponse struct {

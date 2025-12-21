@@ -43,6 +43,8 @@ func fetchCharacterData(ctx context.Context, name string) *characterResponse {
 
 	cd.CharacterID = id
 
+	cd.AnalyzeKills = analyzeKills
+
 	ch := make(chan *characterResponse, 3)
 	var wg sync.WaitGroup
 

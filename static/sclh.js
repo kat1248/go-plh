@@ -11,6 +11,16 @@ function escapeHtml(str) {
 
 let table;
 
+function activatePasteHintOnce() {
+  const hint = document.getElementById('paste-hint');
+  if (!hint || hint.classList.contains('active')) return;
+
+  hint.classList.add('active');
+
+  // Force aria-live announcement without changing visible text
+  hint.textContent = hint.textContent;
+}
+
 const dataFormatting = (function () {
   return {
     char_name: function (data, type, row) {
@@ -72,7 +82,7 @@ const dataFormatting = (function () {
       } else {
         $('td:eq(9)', row).addClass('blank_thumb');
       }
-      if (data.kills == 0) {
+      if (!data.analyze_kills || data.kills == 0) {
         $('td:eq(0)', row).addClass('blank-control');
       } else {
         $('td:eq(0)', row).addClass('details-control');
@@ -232,6 +242,8 @@ $(document).ready(function () {
       const pastedData =
         clipboardData && clipboardData.getData ? clipboardData.getData('Text') : '';
       if (!pastedData) return;
+
+      activatePasteHintOnce();
 
       // Ignore pastes into input, textarea or contenteditable elements so normal typing/paste works
       const tgt = e.target;

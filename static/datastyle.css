@@ -197,3 +197,17 @@ form {
   font-size: 0.75em;
   position: relative;
 }
+
+#paste-hint {
+  text-align: center;
+  margin: 2.5rem 0 1.5rem;
+  font-size: 0.9rem;
+  color: #666;
+
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+#paste-hint.active {
+  opacity: 0.25;
+}
