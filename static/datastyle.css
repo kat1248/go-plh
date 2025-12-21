@@ -2,199 +2,198 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
 :root {
-    /* Fonts */
-    --font-body: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Fonts */
+  --font-body:
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
-    /* Colors */
-    --color-bg-page: #000;
-    --color-bg-surface: #fff;
-    --color-text-default: #000;
-    --color-text-muted: gray;
+  /* Colors */
+  --color-bg-page: #000;
+  --color-bg-surface: #fff;
+  --color-text-default: #000;
+  --color-text-muted: gray;
 
-    --color-danger: red;
-    --color-safe: green;
+  --color-danger: red;
+  --color-safe: green;
 
-    --color-border-default: #000;
-    --color-border-strong: #111;
-    --color-border-transparent: transparent;
+  --color-border-default: #000;
+  --color-border-strong: #111;
+  --color-border-transparent: transparent;
 
-    /* UI sizing */
-    --thumb-border-width: 2px;
-    --thumb-margin: 1px;
+  /* UI sizing */
+  --thumb-border-width: 2px;
+  --thumb-margin: 1px;
 
-    --details-size: 8px;
+  --details-size: 8px;
 
-    /* Assets */
-    --icon-expand: url("glyphicons-433-plus.png");
-    --icon-collapse: url("glyphicons-434-minus.png");
+  /* Assets */
+  --icon-expand: url('glyphicons-433-plus.png');
+  --icon-collapse: url('glyphicons-434-minus.png');
 
-    /* Focus / cursor */
-    --cursor-wait: wait;
+  /* Focus / cursor */
+  --cursor-wait: wait;
 }
 
 /* Global wait cursor */
 html.wait,
 html.wait * {
-    cursor: var(--cursor-wait) !important;
+  cursor: var(--cursor-wait) !important;
 }
-
 
 /* Thumbnail cells */
 td.thumb,
 td.danger_thumb {
-    float: left;
-    position: relative;
-    margin: var(--thumb-margin);
+  float: left;
+  position: relative;
+  margin: var(--thumb-margin);
 }
 
 td.thumb img,
 td.danger_thumb img {
-    border: var(--thumb-border-width) solid var(--color-border-default);
-    vertical-align: bottom;
+  border: var(--thumb-border-width) solid var(--color-border-default);
+  vertical-align: bottom;
 }
 
 td.blank_thumb img {
-    border-color: var(--color-border-transparent);
+  border-color: var(--color-border-transparent);
 }
 
 td.danger_thumb img {
-    border-color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 td.safe_thumb img {
-    border-color: var(--color-safe);
+  border-color: var(--color-safe);
 }
 
 /* Hover preview */
 td.thumb:hover,
 td.danger_thumb:hover {
-    z-index: 1;
+  z-index: 1;
 }
 
 td.thumb span,
 td.danger_thumb span {
-    position: absolute;
-    visibility: hidden;
+  position: absolute;
+  visibility: hidden;
 }
 
 td.thumb:hover span,
 td.danger_thumb:hover span {
-    visibility: visible;
-    top: 2px;
-    left: 42px;
+  visibility: visible;
+  top: 2px;
+  left: 42px;
 }
 
 /* DataTables */
 .dataTables_filter {
-    padding: 2px;
+  padding: 2px;
 }
 
 /* Table rows / cells */
 tr.header {
-    background-color: var(--color-bg-surface);
+  background-color: var(--color-bg-surface);
 }
 
 td.danger {
-    color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 td.safe {
-    color: var(--color-safe);
+  color: var(--color-safe);
 }
 
 td.blank-control {
-    border: 4px solid transparent;
+  border: 4px solid transparent;
 }
 
 /* Details toggle */
 td.details-control {
-    background: url('glyphicons-433-plus.png') no-repeat center center;
-    width: var(--details-size);
-    height: var(--details-size);
-    background: var(--icon-expand) no-repeat center;
-    background-size: contain;
-    cursor: pointer;
+  background: url('glyphicons-433-plus.png') no-repeat center center;
+  width: var(--details-size);
+  height: var(--details-size);
+  background: var(--icon-expand) no-repeat center;
+  background-size: contain;
+  cursor: pointer;
 }
 
 tr.shown td.details-control {
-    background-image: var(--icon-collapse);
+  background-image: var(--icon-collapse);
 }
 
 /* Forms & layout */
 label {
-    color: var(--color-text-default);
+  color: var(--color-text-default);
 }
 
 table {
-    padding: 15px;
-    background-color: var(--color-bg-surface);
+  padding: 15px;
+  background-color: var(--color-bg-surface);
 }
 
 table.embedded {
-    padding: 5px 0 5px 70px;
-    background-color: var(--color-bg-surface);
-    border-collapse: separate;
-    border-spacing: 0;
-    outline: none;
+  padding: 5px 0 5px 70px;
+  background-color: var(--color-bg-surface);
+  border-collapse: separate;
+  border-spacing: 0;
+  outline: none;
 }
 
 table.embedded thead td {
-    font-weight: bold;
-    border-bottom: 1px solid var(--color-border-strong);
+  font-weight: bold;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 /* Page */
 body {
-    font-family: var(--font-body);
-    font-size: 14px;
-    background-color: var(--color-bg-page);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background-color: var(--color-bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
-    padding: 10px;
+  padding: 10px;
 }
 
 /* Paste flash indicator (subtle) */
 .paste-flash {
-    animation: pasteFlash 800ms ease-in-out;
+  animation: pasteFlash 800ms ease-in-out;
 }
 
 @keyframes pasteFlash {
-    0% {
-        box-shadow: 0 0 0 0 rgba(255, 223, 93, 0);
-    }
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 223, 93, 0);
+  }
 
-    15% {
-        box-shadow: 0 0 8px 4px rgba(255, 223, 93, 0.75);
-    }
+  15% {
+    box-shadow: 0 0 8px 4px rgba(255, 223, 93, 0.75);
+  }
 
-    70% {
-        box-shadow: 0 0 8px 4px rgba(255, 223, 93, 0.3);
-    }
+  70% {
+    box-shadow: 0 0 8px 4px rgba(255, 223, 93, 0.3);
+  }
 
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 223, 93, 0);
-    }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 223, 93, 0);
+  }
 }
 
-
 form {
-    float: left;
-    padding: 10px;
-    margin-right: 5px;
-    border: 2px solid var(--color-border-default);
-    border-radius: 5px;
-    background-color: var(--color-bg-surface);
+  float: left;
+  padding: 10px;
+  margin-right: 5px;
+  border: 2px solid var(--color-border-default);
+  border-radius: 5px;
+  background-color: var(--color-bg-surface);
 }
 
 /* Footer */
 #footer {
-    width: 80%;
-    margin: 0.75rem auto 0;
-    text-align: center;
-    color: var(--color-text-muted);
-    font-size: 0.75em;
-    position: relative;
+  width: 80%;
+  margin: 0.75rem auto 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.75em;
+  position: relative;
 }

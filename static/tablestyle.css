@@ -1,157 +1,157 @@
 :root {
-    --dt-text: #333;
-    --dt-bg: #fff;
-    --dt-bg-alt: #f9f9f9;
-    --dt-bg-hover: #f0f0f0;
-    --dt-bg-selected: #b0bed9;
-    --dt-border: #ddd;
-    --dt-border-strong: #111;
+  --dt-text: #333;
+  --dt-bg: #fff;
+  --dt-bg-alt: #f9f9f9;
+  --dt-bg-hover: #f0f0f0;
+  --dt-bg-selected: #b0bed9;
+  --dt-border: #ddd;
+  --dt-border-strong: #111;
 
-    --dt-accent: #585858;
-    --dt-accent-active: #2b2b2b;
-    --dt-focus: 2px solid #005fcc;
+  --dt-accent: #585858;
+  --dt-accent-active: #2b2b2b;
+  --dt-focus: 2px solid #005fcc;
 }
 
 table.dataTable {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    color: var(--dt-text);
-    background: var(--dt-bg);
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--dt-text);
+  background: var(--dt-bg);
 }
 
 table.dataTable th,
 table.dataTable td {
-    padding: 0.5rem 0.75rem;
-    box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+  box-sizing: border-box;
 }
 
 table.dataTable thead th,
 table.dataTable tfoot th {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 table.dataTable thead th {
-    border-bottom: 1px solid var(--dt-border-strong);
+  border-bottom: 1px solid var(--dt-border-strong);
 }
 
 table.dataTable tfoot th {
-    border-top: 1px solid var(--dt-border-strong);
+  border-top: 1px solid var(--dt-border-strong);
 }
 
-table.dataTable.display tbody tr.even>.sorting_1,
-table.dataTable.order-column.stripe tbody tr.even>.sorting_1 {
-    background-color: #f9f9f9;
+table.dataTable.display tbody tr.even > .sorting_1,
+table.dataTable.order-column.stripe tbody tr.even > .sorting_1 {
+  background-color: #f9f9f9;
 }
 
-table.dataTable.display tbody tr.even>.sorting_2,
-table.dataTable.order-column.stripe tbody tr.even>.sorting_2 {
-    background-color: #fbfbfb;
+table.dataTable.display tbody tr.even > .sorting_2,
+table.dataTable.order-column.stripe tbody tr.even > .sorting_2 {
+  background-color: #fbfbfb;
 }
 
-table.dataTable.display tbody tr.even>.sorting_3,
-table.dataTable.order-column.stripe tbody tr.even>.sorting_3 {
-    background-color: #fdfdfd;
+table.dataTable.display tbody tr.even > .sorting_3,
+table.dataTable.order-column.stripe tbody tr.even > .sorting_3 {
+  background-color: #fdfdfd;
 }
 
-table.dataTable.display tbody tr.even.selected>.sorting_1,
-table.dataTable.order-column.stripe tbody tr.even.selected>.sorting_1 {
-    background-color: #acbad4;
+table.dataTable.display tbody tr.even.selected > .sorting_1,
+table.dataTable.order-column.stripe tbody tr.even.selected > .sorting_1 {
+  background-color: #acbad4;
 }
 
-table.dataTable.display tbody tr.even.selected>.sorting_2,
-table.dataTable.order-column.stripe tbody tr.even.selected>.sorting_2 {
-    background-color: #adbbd6;
+table.dataTable.display tbody tr.even.selected > .sorting_2,
+table.dataTable.order-column.stripe tbody tr.even.selected > .sorting_2 {
+  background-color: #adbbd6;
 }
 
-table.dataTable.display tbody tr.even.selected>.sorting_3,
-table.dataTable.order-column.stripe tbody tr.even.selected>.sorting_3 {
-    background-color: #afbdd8;
+table.dataTable.display tbody tr.even.selected > .sorting_3,
+table.dataTable.order-column.stripe tbody tr.even.selected > .sorting_3 {
+  background-color: #afbdd8;
 }
 
 table.dataTable tbody tr:hover {
-    background: var(--dt-bg-hover);
+  background: var(--dt-bg-hover);
 }
 
 table.dataTable tbody tr.selected {
-    background: var(--dt-bg-selected);
+  background: var(--dt-bg-selected);
 }
 
 table.dataTable.row-border tbody td {
-    border-top: 1px solid var(--dt-border);
+  border-top: 1px solid var(--dt-border);
 }
 
 table.dataTable thead .sorting,
 table.dataTable thead .sorting_asc,
 table.dataTable thead .sorting_desc {
-    cursor: pointer;
-    background-position: right center;
-    background-repeat: no-repeat;
+  cursor: pointer;
+  background-position: right center;
+  background-repeat: no-repeat;
 }
 
 .sorting {
-    background-image: url("../images/sort_both.png");
+  background-image: url('../images/sort_both.png');
 }
 
 .sorting_asc {
-    background-image: url("../images/sort_asc.png");
+  background-image: url('../images/sort_asc.png');
 }
 
 .sorting_desc {
-    background-image: url("../images/sort_desc.png");
+  background-image: url('../images/sort_desc.png');
 }
 
 .dt-left {
-    text-align: left;
+  text-align: left;
 }
 
 .dt-center {
-    text-align: center;
+  text-align: center;
 }
 
 .dt-right {
-    text-align: right;
+  text-align: right;
 }
 
 .dt-nowrap {
-    white-space: nowrap;
+  white-space: nowrap;
 }
 
 .dataTables_wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    justify-content: space-between;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
 }
 
 .dataTables_filter input {
-    margin-left: 0.5em;
+  margin-left: 0.5em;
 }
 
 .dataTables_paginate .paginate_button {
-    padding: 0.35em 0.7em;
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 0.35em 0.7em;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .dataTables_paginate .paginate_button:hover {
-    background: var(--dt-accent);
-    color: #fff;
+  background: var(--dt-accent);
+  color: #fff;
 }
 
 .dataTables_paginate .paginate_button.current {
-    font-weight: 600;
-    background: var(--dt-bg);
-    border: 1px solid var(--dt-border);
+  font-weight: 600;
+  background: var(--dt-bg);
+  border: 1px solid var(--dt-border);
 }
 
 .dataTables_paginate .paginate_button:focus-visible {
-    outline: var(--dt-focus);
+  outline: var(--dt-focus);
 }
 
 @media (max-width: 640px) {
-    .dataTables_wrapper {
-        justify-content: center;
-        text-align: center;
-    }
+  .dataTables_wrapper {
+    justify-content: center;
+    text-align: center;
+  }
 }
