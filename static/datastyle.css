@@ -31,6 +31,9 @@
 
   /* Focus / cursor */
   --cursor-wait: wait;
+
+  --text-xs: 0.75rem;
+  --text-xs--line-height: calc(1 / 0.75);
 }
 
 /* Global wait cursor */
@@ -210,4 +213,30 @@ form {
 
 #paste-hint.active {
   opacity: 0.25;
+}
+
+.max-w-2\/3 {
+  max-width: 66.6667%;
+}
+
+.text-xs {
+  font-size: var(--text-xs);
+  line-height: var(--tw-leading, var(--text-xs--line-height));
+}
+
+.text-center {
+  text-align: center;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.footer-block {
+  display: flex;
+  flex-direction: column;
 }

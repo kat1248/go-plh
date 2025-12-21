@@ -22,14 +22,29 @@
 </head>
 
 <body style="background-color: white;">
+    <header>
+        <h1 style="text-align: center; color:gray; background-color:white;padding: 10px;">
+            Signal Cartel's Little Helper
+        </h1>
+    </header>
     <div id="main">
         {{template "body"}}
     </div>
-
-    <div id="paste-hint" aria-live="polite" aria-atomic="true" role="status">
-        Paste character names (one per line) anywhere on this page to analyze them.
-    </div>
-
+    <footer>
+        <div id="paste-hint" aria-live="polite" aria-atomic="true" role="status">
+            Paste character names (one per line) anywhere on this page to analyze them.
+        </div>
+    </footer>
+    <footer class="items-center text-center opacity-50 footer-block">
+        <p class="text-xs max-w-2/3 text-center">© 2025 Ken Taylor. Source and feedback on <a class="underline"
+                href="https://github.com/kat1248/go-plh">GitHub</a>. Data provided by <a class="underline"
+                href="https://developers.eveonline.com/api-explorer">ESI</a> and <a class="underline"
+                href="https://zkillboard.com/">zKillboard</a>.</p>
+        <p class="text-xs max-w-2/3 text-center">
+            EVE Online and the EVE logo are registered trademarks of CCP hf. All
+            rights reserved. All other trademarks are the property of their respective owners. localthreat is an
+            independent project and is not affiliated with, sponsored, or endorsed by CCP hf.</p>
+    </footer>
     <script type="text/javascript" src="static/sclh.js"></script>
 </body>
 
