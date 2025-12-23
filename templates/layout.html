@@ -1,52 +1,60 @@
 {{define "layout"}}
 <!doctype html>
-<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "https://www.w3.org/TR/html4/strict.dtd">
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.01//EN" "https://www.w3.org/TR/html4/strict.dtd">
 
 <html>
-
-<head>
+  <head>
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <meta name="theme-color" content="#1a3d5c" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{template "title"}}</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <link href="https://cdn.datatables.net/v/dt/dt-2.3.5/b-3.2.5/fh-4.0.5/rg-1.6.0/datatables.min.css" rel="stylesheet"
-        integrity="sha384-lxclih9Dm3tbiTP9cvS3iaEtXN8TuiXVUEZeBPasVyYaZhDanRPAUPoRS/7fwGm5" crossorigin="anonymous">
-    <script src="https://cdn.datatables.net/v/dt/dt-2.3.5/b-3.2.5/fh-4.0.5/rg-1.6.0/datatables.min.js"
-        integrity="sha384-9oq/d9gOBJnX8arQLUWbPc6UvRlf+REbbg9QAJuQRAAESBWSZM7XAX/M2/MtUh+i"
-        crossorigin="anonymous"></script>
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+    <link
+      href="https://cdn.datatables.net/v/dt/dt-2.3.5/b-3.2.5/fh-4.0.5/rg-1.6.0/datatables.min.css"
+      rel="stylesheet"
+      integrity="sha384-lxclih9Dm3tbiTP9cvS3iaEtXN8TuiXVUEZeBPasVyYaZhDanRPAUPoRS/7fwGm5"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.datatables.net/v/dt/dt-2.3.5/b-3.2.5/fh-4.0.5/rg-1.6.0/datatables.min.js"
+      integrity="sha384-9oq/d9gOBJnX8arQLUWbPc6UvRlf+REbbg9QAJuQRAAESBWSZM7XAX/M2/MtUh+i"
+      crossorigin="anonymous"
+    ></script>
     <link type="text/css" rel="stylesheet" href="static/tablestyle.css" />
     <link type="text/css" rel="stylesheet" href="static/datastyle.css" />
-</head>
+  </head>
 
-<body style="background-color: white;">
+  <body style="background-color: white">
     <header>
-        <h1 style="text-align: center; color:gray; background-color:white;padding: 10px;">
-            Signal Cartel's Little Helper
-        </h1>
+      <h1 style="text-align: center; color: gray; background-color: white; padding: 10px">
+        Signal Cartel's Little Helper
+      </h1>
     </header>
-    <div id="main">
-        {{template "body"}}
-    </div>
+    <div id="main">{{template "body"}}</div>
     <footer>
-        <div id="paste-hint" aria-live="polite" aria-atomic="true" role="status">
-            Paste character names (one per line) anywhere on this page to analyze them.
-        </div>
+      <div id="paste-hint" aria-live="polite" aria-atomic="true" role="status">
+        Paste character names (one per line) anywhere on this page to analyze them.
+      </div>
     </footer>
     <footer class="items-center text-center opacity-50 footer-block">
-        <p class="text-xs max-w-2/3 text-center">© 2025 Ken Taylor. Source and feedback on <a class="underline"
-                href="https://github.com/kat1248/go-plh">GitHub</a>. Data provided by <a class="underline"
-                href="https://developers.eveonline.com/api-explorer">ESI</a> and <a class="underline"
-                href="https://zkillboard.com/">zKillboard</a>.</p>
-        <p class="text-xs max-w-2/3 text-center">
-            EVE Online and the EVE logo are registered trademarks of CCP hf. All
-            rights reserved. All other trademarks are the property of their respective owners. localthreat is an
-            independent project and is not affiliated with, sponsored, or endorsed by CCP hf.</p>
+      <p class="text-xs max-w-2/3 text-center">
+        © 2025 Ken Taylor. Source and feedback on
+        <a class="underline" href="https://github.com/kat1248/go-plh">GitHub</a>. Data provided by
+        <a class="underline" href="https://developers.eveonline.com/api-explorer">ESI</a> and
+        <a class="underline" href="https://zkillboard.com/">zKillboard</a>.
+      </p>
+      <p class="text-xs max-w-2/3 text-center">
+        EVE Online and the EVE logo are registered trademarks of CCP hf. All rights reserved. All
+        other trademarks are the property of their respective owners. localthreat is an independent
+        project and is not affiliated with, sponsored, or endorsed by CCP hf.
+      </p>
     </footer>
     <script type="text/javascript" src="static/sclh.js"></script>
-</body>
-
+  </body>
 </html>
 {{end}}

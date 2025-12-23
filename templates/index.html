@@ -1,64 +1,71 @@
-{{define "title"}}Signal Cartel's Little Helper{{end}}
-
-{{define "body"}}
+{{define "title"}}Signal Cartel's Little Helper{{end}} {{define "body"}}
 <div id="the-body" class="container">
-    <table id="chars" class="compact stripe order-column hover" aria-describedby="table-status" aria-busy="false">
-        <thead>
-            <tr class="header">
-                <th></th>
-                <th></th>
-                <th>Name</th>
-                <th>Age</th>
-                <th>Danger Level</th>
-                <th>Gang %</th>
-                <th>Security</th>
-                <th>Kills</th>
-                <th>Losses</th>
-                <th class="nothumb"></th>
-                <th>Corp</th>
-                <th class="nothumb"></th>
-                <th>Alliance</th>
-                <th>Last Activity</th>
-                <th>Time in Corp</th>
-                <th>Corp ID</th>
-                <th>Corp Danger</th>
-                <th>NPC Corp</th>
-            </tr>
-        </thead>
-        <tfoot>
-            <tr class="header">
-                <th></th>
-                <th></th>
-                <th>Name</th>
-                <th>Age</th>
-                <th>Danger Level</th>
-                <th>Gang %</th>
-                <th>Security</th>
-                <th>Kills</th>
-                <th>Losses</th>
-                <th></th>
-                <th>Corp</th>
-                <th></th>
-                <th>Alliance</th>
-                <th>Last Activity</th>
-                <th>Time in Corp</th>
-                <th>Corp ID</th>
-                <th>Corp Danger</th>
-                <th>NPC Corp</th>
-            </tr>
-        </tfoot>
-        <tbody>
-        </tbody>
-    </table>
-    <div id="table-status" role="status" aria-live="polite" aria-atomic="true" class="visually-hidden">
+  <table
+    id="chars"
+    class="compact stripe order-column hover"
+    aria-describedby="table-status"
+    aria-busy="false"
+  >
+    <thead>
+      <tr class="header">
+        <th></th>
+        <th></th>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Danger Level</th>
+        <th>Gang %</th>
+        <th>Security</th>
+        <th>Kills</th>
+        <th>Losses</th>
+        <th class="nothumb"></th>
+        <th>Corp</th>
+        <th class="nothumb"></th>
+        <th>Alliance</th>
+        <th>Last Activity</th>
+        <th>Time in Corp</th>
+        <th>Corp ID</th>
+        <th>Corp Danger</th>
+        <th>NPC Corp</th>
+      </tr>
+    </thead>
+    <tfoot>
+      <tr class="header">
+        <th></th>
+        <th></th>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Danger Level</th>
+        <th>Gang %</th>
+        <th>Security</th>
+        <th>Kills</th>
+        <th>Losses</th>
+        <th></th>
+        <th>Corp</th>
+        <th></th>
+        <th>Alliance</th>
+        <th>Last Activity</th>
+        <th>Time in Corp</th>
+        <th>Corp ID</th>
+        <th>Corp Danger</th>
+        <th>NPC Corp</th>
+      </tr>
+    </tfoot>
+    <tbody></tbody>
+  </table>
+  <div
+    id="table-status"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    class="visually-hidden"
+  ></div>
+  <br /><br />
+  <form id="names-form" action="" method="POST">
+    <!-- Name input removed — paste names anywhere on the page to submit -->
+    <div style="color: black">
+      <input type="checkbox" onclick="toggleCorpGrouping()" class="group-button" value="group" />
+      Group by Corporation<br />
     </div>
-    <br><br>
-    <form id="names-form" action="" method="POST">
-        <!-- Name input removed — paste names anywhere on the page to submit -->
-        <div style="color:black;">
-            <input type="checkbox" onclick="toggleCorpGrouping()" class="group-button" value="group">
-            Group by Corporation<br>
-        </div>
-    </form>
+  </form>
 </div>
 {{end}}
