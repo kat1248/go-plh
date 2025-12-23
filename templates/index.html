@@ -2,7 +2,7 @@
 
 {{define "body"}}
 <div id="the-body" class="container">
-    <table id="chars" class="compact stripe order-column hover" aria-describedby="paste-hint">
+    <table id="chars" class="compact stripe order-column hover" aria-describedby="table-status" aria-busy="false">
         <thead>
             <tr class="header">
                 <th></th>
@@ -50,6 +50,8 @@
         <tbody>
         </tbody>
     </table>
+    <div id="table-status" role="status" aria-live="polite" aria-atomic="true" class="visually-hidden">
+    </div>
     <br><br>
     <form id="names-form" action="" method="POST">
         <!-- Name input removed — paste names anywhere on the page to submit -->

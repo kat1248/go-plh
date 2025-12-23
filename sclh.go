@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	maximumNames = 50
+	maximumNames = 100
 	userAgent    = "https://sclh.ddns.net Maintainer: kat1248@gmail.com"
 )
 
@@ -138,60 +138,113 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveData(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
 	regex := regexp.MustCompile(`\r?\n|\r`)
 	nameList := regex.Split(r.FormValue("characters"), -1)
 	names := nameList[0:min(maximumNames, len(nameList))]
-	log.Info("Requested Names [" + strings.Join(names[:], ", ") + "]")
 
-	defer func(start time.Time, num int) {
+	log.Info("Requested Names [" + strings.Join(names, ", ") + "]")
+
+	defer func(num int) {
 		elapsed := time.Since(start).Seconds()
 		log.WithFields(log.Fields{
 			"count":   num,
 			"elapsed": elapsed,
 		}).Info("Handled request")
-	}(time.Now(), len(names))
+	}(len(names))
 
-	success, err := loadCharacterIds(r.Context(), names)
+	// ---- streaming headers ----
+	w.Header().Set("Content-Type", "application/x-ndjson")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Transfer-Encoding", "chunked")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	encoder := json.NewEncoder(w)
+
+	// announce total
+	encoder.Encode(map[string]any{
+		"_meta": "start",
+		"total": len(names),
+	})
+	flusher.Flush()
+
+	ctx := r.Context()
+
+	success, err := loadCharacterIds(ctx, names)
 	if !success {
 		log.Error(err)
 	}
 
-	profiles := make([]characterData, 0)
-	ch := make(chan *characterResponse, len(names))
+	ch := make(chan *characterResponse)
 	var wg sync.WaitGroup
 
+	// ---- worker pool ----
 	for _, name := range names {
-		name := name
+		name := strings.TrimSpace(name)
 		if len(name) < 3 {
 			continue
 		}
+
 		wg.Add(1)
 		go func(n string) {
 			defer wg.Done()
-			ch <- fetchCharacterData(r.Context(), n)
+
+			select {
+			case ch <- fetchCharacterData(ctx, n):
+			case <-ctx.Done():
+				return
+			}
 		}(name)
 	}
 
-	wg.Wait()
-	close(ch)
+	// ---- close channel when workers finish ----
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
 
-	for r := range ch {
-		if r.err == nil {
-			profiles = append(profiles, *r.char)
-		} else {
-			log.Error(r.err)
+	//encoder := json.NewEncoder(w)
+
+	sent := 0
+	// ---- stream rows as they arrive ----
+	for resp := range ch {
+		if resp.err != nil {
+			log.Error(resp.err)
+			continue
 		}
+
+		if err := encoder.Encode(resp.char); err != nil {
+			// Client disconnected — stop work
+			log.Warn("client disconnected during stream")
+			return
+		}
+
+		// 🚨 critical for real-time delivery
+		flusher.Flush()
+
+		sent++
+
+		encoder.Encode(map[string]any{
+			"_meta": "progress",
+			"sent":  sent,
+			"total": len(names),
+		})
+		flusher.Flush()
 	}
 
-	js, err := json.Marshal(profiles)
-	if err != nil {
-		log.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	encoder.Encode(map[string]any{
+		"_meta": "done",
+		"sent":  sent,
+		"total": len(names),
+	})
+	flusher.Flush()
 }
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {

@@ -91,25 +91,64 @@ const dataFormatting = (function () {
   };
 })();
 
-// Removed String.prototype.format to avoid altering built-in prototypes. Use template literals and escapeHtml instead.
-
-function postNames(names) {
+async function postNames(names) {
   $('html').addClass('wait');
-  $.post('info', { characters: names })
-    .done(function (data) {
-      table.clear();
-      table.rows.add(data);
-      table.draw();
-      const form = document.getElementById('names-form');
-      if (form) form.reset();
-    })
-    .fail(function () {
-      // Keep this small; consider showing a user-visible error UI
-      console.error('Failed to fetch character info');
-    })
-    .always(function () {
-      $('html').removeClass('wait');
-    });
+  table.clear().draw(false);
+
+  const response = await fetch('info', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({ characters: names }),
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      let lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const msg = JSON.parse(line);
+
+        // meta messages (progress / start / done)
+        if (msg._meta) {
+          if (msg._meta === 'start') {
+            setTableBusy(true);
+            updateStatus(`Loading ${msg.total} characters`);
+          }
+
+          if (msg._meta === 'progress') {
+            updateStatus(`Loaded ${msg.sent} of ${msg.total} characters`);
+          }
+
+          if (msg._meta === 'done') {
+            setTableBusy(false);
+            updateStatus(`Finished loading ${msg.sent} characters`);
+          }
+
+          continue;
+        }
+
+        // data row
+        table.row.add(msg).draw(false);
+      }
+    }
+  } catch (err) {
+    console.error('stream error', err);
+  } finally {
+    $('html').removeClass('wait');
+  }
 }
 
 function sendNames() {
@@ -148,6 +187,20 @@ function toggleCorpGrouping() {
   table.column('corp_name').visible(!group, false);
   table.column('alliance_name').visible(!group, false);
   table.draw();
+}
+
+function setTableBusy(isBusy) {
+  const tableEl = document.getElementById('chars');
+  if (tableEl) {
+    tableEl.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+  }
+}
+
+function updateStatus(text) {
+  const status = document.getElementById('table-status');
+  if (status) {
+    status.textContent = text;
+  }
 }
 
 function handlePaste(e) {
