@@ -48,7 +48,7 @@ const dataFormatting = (function () {
     },
     alliance_thumb: function (data, type, row) {
       if (row.alliance_id !== 0) {
-        return `<img src="${eve_image_server}/alliances/${row.alliance_id}/logo" height="32" width="32" alt="${escapeHtml(row.alliance_name)} thumbnail" title="Alliance Danger Level: ${row.alliance_danger}" align="middle">`;
+        return `<img src="${eve_image_server}/alliances/${row.alliance_id}/logo" height="32" width="32" alt="${escapeHtml(row.alliance_name)} thumbnail" align="middle">`;
       } else {
         return '';
       }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"regexp"
 
 	"crypto/tls"
 	"flag"
@@ -12,7 +13,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -138,10 +138,9 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveData(w http.ResponseWriter, r *http.Request) {
-	regex, _ := regexp.Compile(`\n{2,}`)
-	temp := regex.ReplaceAllString(r.FormValue("characters"), "\n")
-	nameList := strings.Split(temp, "\n")
-	names := nameList[0:min(maximumNames, len(nameList)-1)]
+	regex := regexp.MustCompile(`\r?\n|\r`)
+	nameList := regex.Split(r.FormValue("characters"), -1)
+	names := nameList[0:min(maximumNames, len(nameList))]
 	log.Info("Requested Names [" + strings.Join(names[:], ", ") + "]")
 
 	defer func(start time.Time, num int) {
