@@ -12,10 +12,12 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -30,63 +32,136 @@ import (
 const (
 	maximumNames = 100
 	userAgent    = "https://sclh.ddns.net Maintainer: kat1248@gmail.com"
+	maxWorkers   = 10
 )
 
 var (
-	port         int  // which port to listen on
-	debugMode    bool // are we in debug mode
-	localMode    bool // are we running locally
-	analyzeKills bool // do more analysis on kills
-	localClient  *http.Client
+	port         int
+	debugMode    bool
+	localMode    bool
+	analyzeKills bool
+
+	httpClient *http.Client
 )
 
-func init() {
-	ports := os.Getenv("PORT")
-	if ports != "" {
-		port, _ = strconv.Atoi(ports)
-		log.Println("Setting port to", fmt.Sprint(port))
-	} else {
-		flag.IntVar(&port, "port", 80, "port to listen on")
-	}
+var newlineRegex = regexp.MustCompile(`\r?\n|\r`)
 
+func init() {
+	flag.IntVar(&port, "port", 80, "port to listen on")
 	flag.BoolVar(&debugMode, "debug", false, "debug mode switch")
 	flag.BoolVar(&localMode, "local", false, "run server locally without TLS")
 	flag.BoolVar(&analyzeKills, "kills", false, "do more analysis on kills")
+}
 
+func setupHTTPClient() {
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = 3
+	retryClient.HTTPClient.Timeout = 10 * time.Second
+
+	cacheTransport := httpcache.NewTransport(httpcache.NewMemoryCache())
+	cacheTransport.Transport = http.DefaultTransport
+
+	retryClient.HTTPClient.Transport = cacheTransport
+	httpClient = retryClient.HTTPClient
+}
+
+func setupLogging() {
 	if debugMode {
 		log.SetOutput(os.Stdout)
+		log.SetLevel(log.DebugLevel)
 	}
+}
 
-	// 1. Create a retryable HTTP client (e.g., from hashicorp)
-	retryClient := retryablehttp.NewClient()
-	retryClient.RetryMax = 3                          // Configure max retries
-	retryClient.HTTPClient.Timeout = 10 * time.Second // Set a timeout for individual requests
+func waitForShutdown(ctx context.Context, server *http.Server) {
+	<-ctx.Done()
 
-	// 2. Wrap the retryable client's transport with the cache transport
-	// The httpcache package works as a RoundTripper
-	cacheTransport := httpcache.NewTransport(httpcache.NewMemoryCache())
+	log.Info("shutdown signal received")
 
-	// Assign the original transport of the retry client to be used by the cache when needed.
-	// This means a cache *miss* will trigger the retry logic.
-	cacheTransport.Transport = retryClient.HTTPClient.Transport
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
-	// 3. Update the retryable client to use the new, wrapped transport
-	retryClient.HTTPClient.Transport = cacheTransport
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.WithError(err).Error("graceful shutdown failed")
+	} else {
+		log.Info("server shut down cleanly")
+	}
+}
 
-	// Use the *http.Client* from the retryable client for standard http operations
-	localClient = retryClient.HTTPClient
+func parsePort() int {
+	if ports := os.Getenv("PORT"); ports != "" {
+		p, err := strconv.Atoi(ports)
+		if err != nil || p <= 0 || p > 65535 {
+			log.Fatalf("Invalid PORT value: %q", ports)
+		}
+		return p
+	}
+	return port
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// ---- TLS / transport ----
+		if r.TLS != nil {
+			w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		}
+
+		// ---- MIME sniffing ----
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+
+		// ---- clickjacking ----
+		w.Header().Set("X-Frame-Options", "DENY")
+
+		// ---- XSS ----
+		w.Header().Set("X-XSS-Protection", "0") // modern browsers use CSP
+
+		// ---- content policy ----
+		w.Header().Set(
+			"Content-Security-Policy",
+			"default-src 'self'; img-src 'self' https://images.evetech.net; style-src 'self' 'unsafe-inline'",
+		)
+
+		// ---- referrer ----
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
-	// parse flags here so tests do not trip over test flags
 	flag.Parse()
+	port = parsePort()
 
-	// server for pprof
+	// Allow PORT env override
+	if ports := os.Getenv("PORT"); ports != "" {
+		p, err := strconv.Atoi(ports)
+		if err != nil {
+			log.Fatalf("Invalid PORT value: %v", err)
+		}
+		port = p
+	}
+
+	setupLogging()
+	setupHTTPClient()
+
+	// pprof server
 	go func() {
-		fmt.Println(http.ListenAndServe("localhost:6060", nil))
+		if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+			log.WithError(err).Warn("pprof server stopped")
+		}
 	}()
 
-	testESI()
+	checkESIConnectivity()
+
+	mux := http.NewServeMux()
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	mux.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("images"))))
+	mux.HandleFunc("/info", serveData)
+	mux.HandleFunc("/", defaultHandler)
+	mux.HandleFunc("/health", healthCheckHandler)
+	mux.HandleFunc("/favicon.ico", faviconHandler)
+
+	handler := securityHeaders(mux)
 
 	certManager := &autocert.Manager{
 		Cache:      autocert.DirCache("./certs"),
@@ -95,36 +170,63 @@ func main() {
 		HostPolicy: autocert.HostWhitelist("tiggs.ddns.net", "sclh.ddns.net"),
 	}
 
-	mux := http.NewServeMux()
-
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	mux.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("images"))))
-	mux.HandleFunc("/info", serveData)
-	mux.HandleFunc("/", defaultHandler)
-	mux.HandleFunc("/health", healthCheckHandler)
-	mux.HandleFunc("/favicon.ico", faviconHandler)
-
-	var httpsPort string = ":443"
-	if localMode {
-		httpsPort = ":8443"
-	}
 	server := &http.Server{
-		Addr:    httpsPort,
-		Handler: mux,
+		Addr:         ":443",
+		Handler:      handler,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 0, // streaming
+		IdleTimeout:  60 * time.Second,
 		TLSConfig: &tls.Config{
 			GetCertificate: certManager.GetCertificate,
+			MinVersion:     tls.VersionTLS12,
+			CurvePreferences: []tls.CurveID{
+				tls.X25519,
+				tls.CurveP256,
+			},
+			PreferServerCipherSuites: true,
 		},
 	}
 
-	if debugMode {
-		log.Println("Listening on port", fmt.Sprint(port))
-		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), mux))
-	} else {
-		log.Println("Secure server", fmt.Sprint(port))
-		go http.ListenAndServe(":"+fmt.Sprint(port), certManager.HTTPHandler(nil))
+	// ---- signal handling ----
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
 
-		log.Fatal(server.ListenAndServeTLS("", ""))
+	// ---- start servers ----
+	if localMode || debugMode {
+		log.Infof("Listening on :%d (HTTP)", port)
+
+		go func() {
+			if err := http.ListenAndServe(fmt.Sprintf(":%d", port), mux); err != nil &&
+				err != http.ErrServerClosed {
+				log.WithError(err).Fatal("HTTP server failed")
+			}
+		}()
+
+		waitForShutdown(ctx, server)
+		return
 	}
+
+	// HTTP → HTTPS redirect + ACME challenge
+	go func() {
+		if err := http.ListenAndServe(":80", certManager.HTTPHandler(nil)); err != nil &&
+			err != http.ErrServerClosed {
+			log.WithError(err).Fatal("ACME HTTP server failed")
+		}
+	}()
+
+	go func() {
+		log.Info("Listening on :443 (HTTPS)")
+		if err := server.ListenAndServeTLS("", ""); err != nil &&
+			err != http.ErrServerClosed {
+			log.WithError(err).Fatal("HTTPS server failed")
+		}
+	}()
+
+	waitForShutdown(ctx, server)
 }
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
@@ -139,26 +241,41 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 func serveData(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
+	ctx := r.Context()
 
-	regex := regexp.MustCompile(`\r?\n|\r`)
-	nameList := regex.Split(r.FormValue("characters"), -1)
-	names := nameList[0:min(maximumNames, len(nameList))]
+	raw := newlineRegex.Split(r.FormValue("characters"), -1)
 
-	log.Info("Requested Names [" + strings.Join(names, ", ") + "]")
+	seen := make(map[string]struct{})
+	names := make([]string, 0, len(raw))
 
-	defer func(num int) {
-		elapsed := time.Since(start).Seconds()
+	for _, n := range raw {
+		n = strings.TrimSpace(n)
+		if len(n) < 3 {
+			continue
+		}
+		if _, ok := seen[n]; ok {
+			continue
+		}
+		seen[n] = struct{}{}
+		names = append(names, n)
+		if len(names) >= maximumNames {
+			break
+		}
+	}
+
+	log.WithField("count", len(names)).Info("request received")
+
+	defer func() {
 		log.WithFields(log.Fields{
-			"count":   num,
-			"elapsed": elapsed,
-		}).Info("Handled request")
-	}(len(names))
+			"count":   len(names),
+			"elapsed": time.Since(start).Seconds(),
+		}).Info("request completed")
+	}()
 
-	// ---- streaming headers ----
+	// Headers for NDJSON streaming
 	w.Header().Set("Content-Type", "application/x-ndjson")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("Transfer-Encoding", "chunked")
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -166,84 +283,85 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encoder := json.NewEncoder(w)
+	enc := json.NewEncoder(w)
 
-	// announce total
-	encoder.Encode(map[string]any{
+	// announce start
+	if err := enc.Encode(map[string]any{
 		"_meta": "start",
 		"total": len(names),
-	})
+	}); err != nil {
+		log.WithError(err).Warn("failed to write start response")
+		return
+	}
 	flusher.Flush()
 
-	ctx := r.Context()
-
-	success, err := loadCharacterIds(ctx, names)
-	if !success {
-		log.Error(err)
+	if ok, err := loadCharacterIds(ctx, names); !ok {
+		log.WithError(err).Warn("failed to preload character IDs")
 	}
 
-	ch := make(chan *characterResponse)
+	jobs := make(chan string)
+	results := make(chan *characterResponse, maxWorkers)
+
 	var wg sync.WaitGroup
 
-	// ---- worker pool ----
-	for _, name := range names {
-		name := strings.TrimSpace(name)
-		if len(name) < 3 {
-			continue
-		}
-
+	// workers
+	for i := 0; i < maxWorkers; i++ {
 		wg.Add(1)
-		go func(n string) {
+		go func() {
 			defer wg.Done()
-
-			select {
-			case ch <- fetchCharacterData(ctx, n):
-			case <-ctx.Done():
-				return
+			for name := range jobs {
+				select {
+				case results <- fetchCharacterData(ctx, name):
+				case <-ctx.Done():
+					return
+				}
 			}
-		}(name)
+		}()
 	}
 
-	// ---- close channel when workers finish ----
+	// feed jobs
 	go func() {
-		wg.Wait()
-		close(ch)
+		for _, name := range names {
+			select {
+			case jobs <- name:
+			case <-ctx.Done():
+				break
+			}
+		}
+		close(jobs)
 	}()
 
-	//encoder := json.NewEncoder(w)
+	// close results
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
 	sent := 0
-	// ---- stream rows as they arrive ----
-	for resp := range ch {
+
+	for resp := range results {
 		if resp.err != nil {
-			log.Error(resp.err)
+			log.WithError(resp.err).Error("fetch failed")
 			continue
 		}
 
-		if err := encoder.Encode(resp.char); err != nil {
-			// Client disconnected — stop work
-			log.Warn("client disconnected during stream")
+		if err := enc.Encode(resp.char); err != nil {
+			log.Warn("client disconnected")
 			return
 		}
-
-		// 🚨 critical for real-time delivery
 		flusher.Flush()
 
 		sent++
-
-		encoder.Encode(map[string]any{
-			"_meta": "progress",
-			"sent":  sent,
-			"total": len(names),
-		})
-		flusher.Flush()
 	}
 
-	encoder.Encode(map[string]any{
+	if err := enc.Encode(map[string]any{
 		"_meta": "done",
 		"sent":  sent,
 		"total": len(names),
-	})
+	}); err != nil {
+		log.WithError(err).Warn("failed to write final response")
+		return
+	}
 	flusher.Flush()
 }
 
@@ -281,7 +399,7 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func testESI() {
+func checkESIConnectivity() {
 	// create ESI client
 	client := goesi.NewAPIClient(nil, userAgent)
 	// call Status endpoint
