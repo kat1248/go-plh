@@ -132,15 +132,6 @@ func main() {
 	flag.Parse()
 	port = parsePort()
 
-	// Allow PORT env override
-	if ports := os.Getenv("PORT"); ports != "" {
-		p, err := strconv.Atoi(ports)
-		if err != nil {
-			log.Fatalf("Invalid PORT value: %v", err)
-		}
-		port = p
-	}
-
 	setupLogging()
 	setupHTTPClient()
 
@@ -164,10 +155,11 @@ func main() {
 	handler := securityHeaders(mux)
 
 	certManager := &autocert.Manager{
-		Cache:      autocert.DirCache("./certs"),
-		Prompt:     autocert.AcceptTOS,
-		Email:      "kat1248@gmail.com",
-		HostPolicy: autocert.HostWhitelist("tiggs.ddns.net", "sclh.ddns.net"),
+		Cache:       autocert.DirCache("./certs"),
+		Prompt:      autocert.AcceptTOS,
+		Email:       "kat1248@gmail.com",
+		HostPolicy:  autocert.HostWhitelist("tiggs.ddns.net", "sclh.ddns.net"),
+		RenewBefore: 30 * 24 * time.Hour,
 	}
 
 	server := &http.Server{
@@ -405,7 +397,7 @@ func checkESIConnectivity() {
 	// call Status endpoint
 	status, _, err := client.ESI.StatusApi.GetStatus(context.Background(), nil)
 	if err != nil {
-		panic(err)
+		log.WithError(err).Fatal("ESI unavailable")
 	}
 	// print current status
 	fmt.Println("Players online: ", status.Players)
