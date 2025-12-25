@@ -24,7 +24,7 @@ func fetchURL(ctx context.Context, method, url string, params map[string]string,
 		req.URL.RawQuery = q.Encode()
 	}
 
-	resp, err := localClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -62,12 +62,12 @@ func zkillGet(ctx context.Context, url string) ([]byte, error) {
 // 	req.Header.Add("User-Agent", userAgent)
 
 // 	// temporarily turn off retries
-// 	retries := localClient.MaxRetries
-// 	localClient.MaxRetries = 0
+// 	retries := httpClient.MaxRetries
+// 	httpClient.MaxRetries = 0
 // 	defer func() {
-// 		localClient.MaxRetries = retries
+// 		httpClient.MaxRetries = retries
 // 	}()
-// 	resp, err := localClient.Do(req)
+// 	resp, err := httpClient.Do(req)
 // 	if err != nil {
 // 		return false
 // 	}
