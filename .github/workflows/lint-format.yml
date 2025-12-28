@@ -40,10 +40,10 @@ jobs:
         run: npm ci
 
       - name: Run ESLint (no auto-fix)
-        run: npx eslint 'static/*.js' --max-warnings=0
+        run: npx eslint 'static/*.ts' --max-warnings=0
 
       - name: Run Prettier check
-        run: npx prettier --check 'static/*.js'
+        run: npx prettier --check 'static/*.ts'
 
   go-test:
     name: Go Tests
