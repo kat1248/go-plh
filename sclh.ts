@@ -243,6 +243,40 @@ function initTable(): void {
   });
 }
 
+/* -------------------------
+ * Row details toggle
+ * ------------------------- */
+
+function initRowDetailsToggle(): void {
+  $('#chars tbody').on(
+    'click',
+    'td.details-control',
+    function (this: HTMLTableCellElement) {
+      const tr = $(this).closest('tr');
+      const row = table.row(tr);
+
+      // DataTables typings are incomplete for child rows
+      const child = row.child() as DataTables.RowChild;
+
+      if (child.isShown()) {
+        // Row already open → close it
+        child.hide();
+        tr.removeClass('shown');
+      } else {
+        // Row closed → open it
+        if (child() && child().length) {
+          child.show();
+        } else {
+          const data = row.data() as CharacterRow;
+          child(formatKills(data)).show();
+        }
+        tr.addClass('shown');
+      }
+    }
+  );
+}
+
+
 /**
  * Submits a list of character names to the server and streams returned character rows into the UI table while reflecting loading progress.
  *
@@ -432,6 +466,7 @@ function formatKills(d: CharacterRow): string {
 
 $(document).ready(() => {
   initTable();
+  initRowDetailsToggle(); 
   toggleCorpGrouping();
   document.addEventListener('paste', handlePaste);
 });
