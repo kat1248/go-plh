@@ -113,12 +113,10 @@ func TestKillmailCache_Basic(t *testing.T) {
 	zkillAPIURL = s.URL
 	defer func() { zkillAPIURL = origZkill }()
 
-	// First fetch should hit endpoint
 	r := fetchKillHistory(context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected error: %v", r.err)
 	}
-	// Second fetch should hit cache
 	r = fetchKillHistory(context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected error on second fetch: %v", r.err)
@@ -159,7 +157,7 @@ func TestKillmailCache_Expiration(t *testing.T) {
 		t.Fatalf("unexpected error: %v", r.err)
 	}
 
-	time.Sleep(100 * time.Millisecond) // wait for TTL expiration
+	time.Sleep(100 * time.Millisecond)
 
 	r = fetchKillHistory(context.Background(), 123)
 	if r.err != nil {
@@ -168,5 +166,51 @@ func TestKillmailCache_Expiration(t *testing.T) {
 
 	if hits != 2 {
 		t.Fatalf("expected killmail endpoint hit twice after expiration, got %d", hits)
+	}
+}
+
+func TestFetchKillHistory_ContextCancelled(t *testing.T) {
+	killmailCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(200 * time.Millisecond)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]zKillMail{})
+	}))
+	defer s.Close()
+
+	origZkill := zkillAPIURL
+	zkillAPIURL = s.URL
+	defer func() { zkillAPIURL = origZkill }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	r := fetchKillHistory(ctx, 123)
+	if r.err == nil {
+		t.Fatalf("expected error due to context cancel, got nil")
+	}
+}
+
+func TestFetchRecentKillHistory_ContextCancelled(t *testing.T) {
+	killmailCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(200 * time.Millisecond)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]killMail{})
+	}))
+	defer s.Close()
+
+	origZkill := zkillAPIURL
+	zkillAPIURL = s.URL
+	defer func() { zkillAPIURL = origZkill }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	r := fetchRecentKillHistory(ctx, 123)
+	if r.err == nil {
+		t.Fatalf("expected error due to context cancel, got nil")
 	}
 }
