@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -16,7 +15,6 @@ func TestFetchCharacterData_Basic(t *testing.T) {
 	ccpCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
 	zkillCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
 
-	// Mock server for all API endpoints
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/universe/ids/":
@@ -39,10 +37,13 @@ func TestFetchCharacterData_Basic(t *testing.T) {
 	}))
 	defer s.Close()
 
-	// Use a custom HTTP client pointing to the mock server
-	mockClient := s.Client()
+	origZkill := zkillAPIURL
+	origCcp := ccpEsiURL
+	zkillAPIURL = s.URL + "/"
+	ccpEsiURL = s.URL + "/"
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
 
-	r := fetchCharacterDataWithClient(context.Background(), "Mynxee", mockClient, s.URL+"/", s.URL+"/")
+	r := fetchCharacterData(context.Background(), "Mynxee")
 	if r.err != nil {
 		t.Fatalf("unexpected error: %v", r.err)
 	}
@@ -55,23 +56,9 @@ func TestFetchCharacterData_Basic(t *testing.T) {
 	if r.char.AllianceName != "TestAlliance" {
 		t.Fatalf("expected alliance name TestAlliance, got %s", r.char.AllianceName)
 	}
-}
-
-// Example wrapper for fetchCharacterData that injects a client and URLs
-func fetchCharacterDataWithClient(ctx context.Context, name string, client *http.Client, ccpURL, zkillURL string) *characterResponse {
-	oldClient := httpClient
-	oldCcp := ccpEsiURL
-	oldZkill := zkillAPIURL
-	httpClient = client
-	ccpEsiURL = ccpURL
-	zkillAPIURL = zkillURL
-	defer func() {
-		httpClient = oldClient
-		ccpEsiURL = oldCcp
-		zkillAPIURL = oldZkill
-	}()
-
-	return fetchCharacterData(ctx, name)
+	if r.char.Name != "Space Mom" { // nickname mapping
+		t.Fatalf("expected nickname mapping to Space Mom, got %s", r.char.Name)
+	}
 }
 
 func TestFetchCharacterData_NotFound(t *testing.T) {
@@ -79,33 +66,65 @@ func TestFetchCharacterData_NotFound(t *testing.T) {
 	zkillCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/universe/ids/" {
+			_ = json.NewEncoder(w).Encode(map[string]any{"characters": []any{}})
+			return
+		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer s.Close()
 
-	mockClient := s.Client()
-	r := fetchCharacterDataWithClient(context.Background(), "NoSuch", mockClient, s.URL+"/", s.URL+"/")
+	origCcp := ccpEsiURL
+	ccpEsiURL = s.URL + "/"
+	defer func() { ccpEsiURL = origCcp }()
+
+	r := fetchCharacterData(context.Background(), "NoSuch")
 	if r.err == nil {
 		t.Fatalf("expected error for missing character, got nil")
 	}
 }
 
-func TestFetchCharacterData_Timeout(t *testing.T) {
+func TestFetchCharacterData_WithKills(t *testing.T) {
 	ccpCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
 	zkillCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
+	analyzeKills = true
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(200 * time.Millisecond)
-		_ = json.NewEncoder(w).Encode(map[string]any{"characters": []map[string]any{{"id": 77, "name": "Slow"}}})
+		switch r.URL.Path {
+		case "/universe/ids/":
+			_ = json.NewEncoder(w).Encode(map[string]any{"characters": []map[string]any{{"id": 999, "name": "Pilot"}}})
+		case "/characters/999/":
+			_ = json.NewEncoder(w).Encode(ccpResponse{Name: "Pilot", CorpID: 10, AllianceID: 0, Security: 0.5, Birthday: "2005-01-01T00:00:00Z"})
+		case "/stats/characterID/999/":
+			_ = json.NewEncoder(w).Encode(zKillResponse{Danger: 1, Gang: 0, Kills: 2, Losses: 1})
+		case "/kills/characterID/999/":
+			_ = json.NewEncoder(w).Encode([]killMail{{Time: "2020-01-01T00:00:00Z"}, {Time: "2020-01-02T00:00:00Z"}})
+		case "/stats/corporationID/10/":
+			_ = json.NewEncoder(w).Encode(zKillResponse{Danger: 1, Gang: 0, Kills: 0, Losses: 0})
+		case "/characters/999/corporationhistory":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{"start_date": "2012-05-01T00:00:00Z"}})
+		case "/corporations/10/":
+			_ = json.NewEncoder(w).Encode(map[string]any{"name": "PilotCorp"})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
 	}))
 	defer s.Close()
 
-	mockClient := s.Client()
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
+	origZkill := zkillAPIURL
+	origCcp := ccpEsiURL
+	zkillAPIURL = s.URL + "/"
+	ccpEsiURL = s.URL + "/"
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; analyzeKills = false }()
 
-	r := fetchCharacterDataWithClient(ctx, "Slow", mockClient, s.URL+"/", s.URL+"/")
-	if r.err == nil {
-		t.Fatalf("expected timeout error, got nil")
+	r := fetchCharacterData(context.Background(), "Pilot")
+	if r.err != nil {
+		t.Fatalf("unexpected err: %v", r.err)
+	}
+	if r.char.RecentKillTotal != 2 {
+		t.Fatalf("expected 2 recent kills, got %d", r.char.RecentKillTotal)
+	}
+	if r.char.RecentExplorerTotal != 2 {
+		t.Fatalf("expected 2 explorer kills, got %d", r.char.RecentExplorerTotal)
 	}
 }
