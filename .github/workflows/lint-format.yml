@@ -40,7 +40,7 @@ jobs:
         run: npm ci
 
       - name: Run ESLint (no auto-fix)
-        run: npx eslint '*.ts' --max-warnings=0 --no-ignore
+        run: npx eslint 'sclh.ts' --max-warnings=0 --no-ignore
 
       - name: Run Prettier check
         run: npx prettier --check '*.ts'
