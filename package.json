@@ -5,8 +5,8 @@
   "scripts": {
     "lint": "eslint 'static/**/*.js' --max-warnings=0",
     "lint:css": "stylelint 'static/**/*.css'",
-    "format": "prettier --write 'static/**/*.js'",
-    "check": "npm run lint && npm run lint:css && npx prettier --check 'static/**/*.js'",
+    "format": "prettier --write 'static/**/*.ts'",
+    "check": "npm run lint && npm run lint:css && npx prettier --check 'static/**/*.ts'",
     "build": "tsc"  },
   "devDependencies": {
     "@types/datatables.net": "^1.10.28",
