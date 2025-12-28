@@ -261,6 +261,13 @@ async function postNames(names: string): Promise<void> {
     body: new URLSearchParams({ characters: names }),
   });
 
+  if (!response.ok) {
+    console.error('Request failed:', response.status);
+    $('html').removeClass('wait');
+    updateStatus(`Error: ${response.statusText}`);
+    return;
+  }
+
   if (!response.body) return;
 
   const reader = response.body.getReader();
@@ -279,7 +286,13 @@ async function postNames(names: string): Promise<void> {
       for (const line of lines) {
         if (!line.trim()) continue;
 
-        const msg = JSON.parse(line) as CharacterRow | MetaMessage;
+        let msg: CharacterRow | MetaMessage;
+        try {
+          msg = JSON.parse(line) as CharacterRow | MetaMessage;
+        } catch {
+          console.warn('Skipping malformed line:', line);
+          continue;
+        }
 
         if ('_meta' in msg) {
           if (msg._meta === 'start') {
