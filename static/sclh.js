@@ -1,244 +1,215 @@
 'use strict';
 
-const eve_image_server = 'https://images.evetech.net';
-const zkill_server = 'https://zkillboard.com';
+// ---------------------------
+// Configuration
+// ---------------------------
+const CONFIG = {
+  EVE_IMAGE_SERVER: 'https://images.evetech.net',
+  ZKILL_SERVER: 'https://zkillboard.com',
+};
 
-function escapeHtml(str) {
-  return String(str == null ? '' : str).replace(/[&<>"']/g, function (s) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s];
-  });
-}
+// ---------------------------
+// Utilities
+// ---------------------------
+const escapeHtml = (str) =>
+  String(str ?? '').replace(
+    /[&<>"']/g,
+    (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]
+  );
 
-let table;
+// ---------------------------
+// DOM / Accessibility Helpers
+// ---------------------------
+const setTableBusy = (isBusy) => {
+  const tableEl = document.getElementById('chars');
+  if (tableEl) tableEl.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+};
 
-function activatePasteHintOnce() {
+const updateStatus = (text) => {
+  const statusEl = document.getElementById('table-status');
+  if (statusEl) statusEl.textContent = text;
+};
+
+const activatePasteHintOnce = () => {
   const hint = document.getElementById('paste-hint');
   if (!hint || hint.classList.contains('active')) return;
-
   hint.classList.add('active');
+  hint.textContent = hint.textContent; // trigger aria-live
+};
 
-  // Force aria-live announcement without changing visible text
-  hint.textContent = hint.textContent;
-}
+// ---------------------------
+// Data Formatting for DataTables
+// ---------------------------
+const dataFormatting = (() => ({
+  char_name: (data, type, row) =>
+    row.has_killboard
+      ? `<a href="${CONFIG.ZKILL_SERVER}/character/${row.character_id}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.name)}</a>`
+      : data,
 
-const dataFormatting = (function () {
-  return {
-    char_name: function (data, type, row) {
-      if (row.has_killboard) {
-        const url = `${zkill_server}/character/${row.character_id}`;
-        return `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(row.name)}</a>`;
-      } else {
-        return data;
-      }
-    },
-    corp_name: function (data, type, row) {
-      const url = `${zkill_server}/corporation/${row.corp_id}`;
-      return `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(row.corp_name)}</a>`;
-    },
-    char_thumb: function (data, type, row) {
-      const img = `<img src="${eve_image_server}/characters/${row.character_id}/portrait" height="32" width="32" alt="${escapeHtml(row.name)} thumbnail" align="middle">`;
-      const span = `<span><img src="${eve_image_server}/characters/${row.character_id}/portrait" height="512" width="512" alt="${escapeHtml(row.name)} portrait"></span>`;
-      return img + span;
-    },
-    corp_thumb: function (data, type, row) {
-      return `<img src="${eve_image_server}/corporations/${row.corp_id}/logo" height="32" width="32" alt="${escapeHtml(row.corp_name)} thumbnail" title="Corporation Danger Level: ${row.corp_danger}" align="middle">`;
-    },
-    corp_age: function (data, type, row) {
-      return data;
-    },
-    alliance_thumb: function (data, type, row) {
-      if (row.alliance_id !== 0) {
-        return `<img src="${eve_image_server}/alliances/${row.alliance_id}/logo" height="32" width="32" alt="${escapeHtml(row.alliance_name)} thumbnail" align="middle">`;
-      } else {
-        return '';
-      }
-    },
-    alliance_name: function (data, type, row) {
-      const url = `${zkill_server}/alliance/${row.alliance_id}`;
-      return `<a href="${url}" target="_blank" rel="noopener">${escapeHtml(row.alliance_name)}</a>`;
-    },
-    row_group: function (rows, corp_name) {
-      const first_row = rows.data()[0];
-      const alliance = first_row.alliance_name;
-      const corp_id = first_row.corp_id;
-      const corp_danger = first_row.corp_danger;
-      const npc_corp = first_row.is_npc_corp;
-      return groupRow(corp_name, alliance, corp_id, corp_danger, npc_corp);
-    },
-    postProcess: function (row, data, dataIndex) {
-      if (data.danger > 50) {
-        $('td:eq(1)', row).addClass('danger_thumb');
-        $('td:eq(4)', row).addClass('danger');
-      } else {
-        $('td:eq(1)', row).addClass('thumb');
-      }
-      if (data.security < 0) {
-        $('td:eq(6)', row).addClass('danger');
-      }
-      if (data.corp_danger > 50) {
-        $('td:eq(9)', row).addClass('danger_thumb');
-      } else if (data.is_npc_corp) {
-        $('td:eq(9)', row).addClass('safe_thumb');
-      } else {
-        $('td:eq(9)', row).addClass('blank_thumb');
-      }
-      if (!data.analyze_kills || data.kills == 0) {
-        $('td:eq(0)', row).addClass('blank-control');
-      } else {
-        $('td:eq(0)', row).addClass('details-control');
-      }
-    },
-  };
-})();
+  corp_name: (data, type, row) =>
+    `<a href="${CONFIG.ZKILL_SERVER}/corporation/${row.corp_id}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.corp_name)}</a>`,
 
-async function postNames(names) {
+  char_thumb: (data, type, row) => {
+    const thumb = `<img src="${CONFIG.EVE_IMAGE_SERVER}/characters/${row.character_id}/portrait" height="32" width="32" alt="${escapeHtml(row.name)} thumbnail" align="middle">`;
+    const large = `<span><img src="${CONFIG.EVE_IMAGE_SERVER}/characters/${row.character_id}/portrait" height="512" width="512" alt="${escapeHtml(row.name)} portrait"></span>`;
+    return thumb + large;
+  },
+
+  corp_thumb: (data, type, row) =>
+    `<img src="${CONFIG.EVE_IMAGE_SERVER}/corporations/${row.corp_id}/logo" height="32" width="32" alt="${escapeHtml(row.corp_name)} thumbnail" title="Corporation Danger Level: ${row.corp_danger}" align="middle">`,
+
+  alliance_thumb: (data, type, row) =>
+    row.alliance_id !== 0
+      ? `<img src="${CONFIG.EVE_IMAGE_SERVER}/alliances/${row.alliance_id}/logo" height="32" width="32" alt="${escapeHtml(row.alliance_name)} thumbnail" align="middle">`
+      : '',
+
+  alliance_name: (data, type, row) =>
+    `<a href="${CONFIG.ZKILL_SERVER}/alliance/${row.alliance_id}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.alliance_name)}</a>`,
+
+  corp_age: (data) => data,
+
+  row_group: (rows) => {
+    const { alliance_name, corp_id, corp_danger, is_npc_corp, corp_name } = rows.data()[0];
+    return groupRow(corp_name, alliance_name, corp_id, corp_danger, is_npc_corp);
+  },
+
+  postProcess: (row, data) => {
+    const $row = $(row);
+
+    // Danger / safe highlighting
+    $row
+      .find('td:eq(1)')
+      .toggleClass('danger_thumb', data.danger > 50)
+      .toggleClass('thumb', data.danger <= 50);
+    $row.find('td:eq(4)').toggleClass('danger', data.danger > 50);
+    $row.find('td:eq(6)').toggleClass('danger', data.security < 0);
+    $row
+      .find('td:eq(9)')
+      .removeClass('danger_thumb safe_thumb blank_thumb')
+      .addClass(
+        data.corp_danger > 50 ? 'danger_thumb' : data.is_npc_corp ? 'safe_thumb' : 'blank_thumb'
+      );
+
+    $row
+      .find('td:eq(0)')
+      .toggleClass('details-control', data.analyze_kills && data.kills)
+      .toggleClass('blank-control', !data.analyze_kills || data.kills === 0);
+  },
+}))();
+
+// ---------------------------
+// Table Row Grouping
+// ---------------------------
+const groupRow = (corpName, allianceName, corpId, corpDanger, npcCorp) => {
+  const allianceText = allianceName ? ` (${escapeHtml(allianceName)})` : '';
+  const corpClass = corpDanger > 50 ? 'danger' : npcCorp ? 'safe' : '';
+  const imgCell = `<td class="blank_thumb"><img src="${CONFIG.EVE_IMAGE_SERVER}/corporations/${corpId}/logo" height="32" width="32"></td>`;
+  const nameCell = `<td ${corpClass ? `class="${corpClass}"` : ''}>${escapeHtml(corpName)}${allianceText}</td>`;
+  return imgCell + nameCell;
+};
+
+// ---------------------------
+// Paste Handling
+// ---------------------------
+const handlePaste = (e) => {
+  e.stopPropagation();
+  e.preventDefault();
+
+  const clipboardData = e.clipboardData ?? window.clipboardData;
+  const pastedData = clipboardData?.getData('Text') ?? '';
+  if (!pastedData) return;
+
+  postNames(pastedData);
+};
+
+// ---------------------------
+// Posting Names & Streaming
+// ---------------------------
+const postNames = async (names) => {
   $('html').addClass('wait');
   table.clear().draw(false);
 
-  const response = await fetch('info', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({ characters: names }),
-  });
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
   try {
+    const response = await fetch('info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ characters: names }),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-
       buffer += decoder.decode(value, { stream: true });
 
-      let lines = buffer.split('\n');
+      const lines = buffer.split('\n');
       buffer = lines.pop(); // keep incomplete line
 
-      for (const line of lines) {
-        if (!line.trim()) continue;
+      lines.filter(Boolean).forEach((line) => {
         const msg = JSON.parse(line);
-
-        // meta messages (progress / start / done)
         if (msg._meta) {
-          if (msg._meta === 'start') {
-            setTableBusy(true);
-            updateStatus(`Loading ${msg.total} characters`);
+          switch (msg._meta) {
+            case 'start':
+              setTableBusy(true);
+              updateStatus(`Loading ${msg.total} characters`);
+              break;
+            case 'progress':
+              updateStatus(`Loaded ${msg.sent} of ${msg.total} characters`);
+              break;
+            case 'done':
+              setTableBusy(false);
+              updateStatus(`Finished loading ${msg.sent} characters`);
+              break;
           }
-
-          if (msg._meta === 'progress') {
-            updateStatus(`Loaded ${msg.sent} of ${msg.total} characters`);
-          }
-
-          if (msg._meta === 'done') {
-            setTableBusy(false);
-            updateStatus(`Finished loading ${msg.sent} characters`);
-          }
-
-          continue;
+          return;
         }
-
-        // data row
         table.row.add(msg).draw(false);
-      }
+      });
     }
   } catch (err) {
     console.error('stream error', err);
   } finally {
     $('html').removeClass('wait');
   }
-}
+};
 
-function sendNames() {
-  const names = document.getElementById('name-list').value;
-  postNames(names);
-}
+// ---------------------------
+// Utility Functions
+// ---------------------------
+const sendNames = () => {
+  const names = document.getElementById('name-list')?.value;
+  if (names) postNames(names);
+};
 
-function groupRow(group, alliance_name, corp_id, corp_danger, npc_corp) {
-  const img = `<td class="blank_thumb"><img src="${eve_image_server}/corporations/${corp_id}/logo" height="32" width="32"></td>`;
-  let corp_class = '';
-  if (corp_danger > 50) {
-    corp_class = 'class="danger"';
-  } else if (npc_corp) {
-    corp_class = 'class="safe"';
-  }
-  let alliance = '';
-  if (alliance_name !== '') {
-    alliance = `  (${escapeHtml(alliance_name)})`;
-  }
-  const name = `<td ${corp_class}>${escapeHtml(group)}${alliance}</td>`;
-  return img + name;
-}
+const formatKills = (d) => {
+  if (!d.kills) return '';
+  return `<table class="embedded">
+    <thead><tr>
+      <td>Explorer Ships Killed</td>
+      <td>Total Killed</td>
+      <td class="dt-body-center">Since</td>
+      <td>Kills in Last Week</td>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td class="dt-body-center">${d.recent_explorer_total}</td>
+        <td class="dt-body-center">${d.recent_kill_total}</td>
+        <td class="dt-body-center">${escapeHtml(d.last_kill_time)}</td>
+        <td class="dt-body-center">${d.kills_last_week}</td>
+      </tr>
+    </tbody>
+  </table>`;
+};
 
-function toggleCorpGrouping() {
-  const chk = document.querySelector('.group-button');
-  if (!chk) return;
-  const group = chk.checked;
-  if (group) {
-    table.column(10).order('asc');
-    table.rowGroup().enable();
-  } else {
-    table.column(2).order('asc');
-    table.rowGroup().disable();
-  }
-  table.column('corp_thumb').visible(!group, false);
-  table.column('corp_name').visible(!group, false);
-  table.column('alliance_name').visible(!group, false);
-  table.draw();
-}
+// ---------------------------
+// Table Initialization
+// ---------------------------
+let table;
 
-function setTableBusy(isBusy) {
-  const tableEl = document.getElementById('chars');
-  if (tableEl) {
-    tableEl.setAttribute('aria-busy', isBusy ? 'true' : 'false');
-  }
-}
-
-function updateStatus(text) {
-  const status = document.getElementById('table-status');
-  if (status) {
-    status.textContent = text;
-  }
-}
-
-function handlePaste(e) {
-  // Stop data actually being pasted into div
-  e.stopPropagation();
-  e.preventDefault();
-
-  // Get pasted data via clipboard API
-  const clipboardData = e.clipboardData || window.clipboardData;
-  const pastedData = clipboardData && clipboardData.getData ? clipboardData.getData('Text') : '';
-  if (pastedData) postNames(pastedData);
-}
-
-function formatKills(d) {
-  // `d` is the original data object for the row
-  if (d.kills === 0) {
-    return '';
-  } else {
-    return `<table class="embedded">
-            <thead><tr>
-              <td>Explorer Ships Killed</td>
-              <td>Total Killed</td>
-              <td class="dt-body-center">Since</td>
-              <td>Kills in Last Week</td>
-            </tr></thead>
-            <tbody>
-              <tr>
-                <td class="dt-body-center">${d.recent_explorer_total}</td>
-                <td class="dt-body-center">${d.recent_kill_total}</td>
-                <td class="dt-body-center">${escapeHtml(d.last_kill_time)}</td>
-                <td class="dt-body-center">${d.kills_last_week}</td>
-              </tr>
-            </tbody>
-          </table>`;
-  }
-}
-
-$(document).ready(function () {
+$(document).ready(() => {
   table = $('#chars').DataTable({
     order: [
       [10, 'asc'],
@@ -286,40 +257,26 @@ $(document).ready(function () {
   toggleCorpGrouping();
   document.getElementById('chars').addEventListener('paste', handlePaste);
 
-  // Textarea removed — paste anywhere is handled by the global handler
-
-  // Global paste handler: submit pasted text as names unless paste is into an editable field
-  document.addEventListener('paste', function (e) {
+  document.addEventListener('paste', (e) => {
     try {
-      const clipboardData = e.clipboardData || window.clipboardData;
-      const pastedData =
-        clipboardData && clipboardData.getData ? clipboardData.getData('Text') : '';
+      const clipboardData = e.clipboardData ?? window.clipboardData;
+      const pastedData = clipboardData?.getData('Text') ?? '';
       if (!pastedData) return;
 
       activatePasteHintOnce();
 
-      // Ignore pastes into input, textarea or contenteditable elements so normal typing/paste works
       const tgt = e.target;
       const editable =
-        tgt &&
-        ((tgt.closest && tgt.closest('input, textarea, [contenteditable="true"]')) ||
-          tgt.isContentEditable);
+        tgt?.closest?.('input, textarea, [contenteditable="true"]') || tgt.isContentEditable;
       if (editable) return;
 
-      // Update the textarea for visibility/usability
       const textarea = document.getElementById('name-list');
       if (textarea) {
         textarea.value = pastedData;
-        try {
-          textarea.classList.add('paste-flash');
-          setTimeout(function () {
-            textarea.classList.remove('paste-flash');
-          }, 900);
-        } catch (err) {
-          /* ignore */
-        }
+        textarea.classList.add('paste-flash');
+        setTimeout(() => textarea.classList.remove('paste-flash'), 900);
       }
-      // Submit pasted content as names
+
       postNames(pastedData);
     } catch (err) {
       console.error('global paste handler error', err);
@@ -327,21 +284,30 @@ $(document).ready(function () {
   });
 
   $('#chars tbody').on('click', 'td.details-control', function () {
-    const tr = $(this).parents('tr');
+    const tr = $(this).closest('tr');
     const row = table.row(tr);
-
     if (row.child.isShown()) {
-      // This row is already open - close it
       row.child.hide();
       tr.removeClass('shown');
     } else {
-      // Open this row (the format() function would return the data to be shown)
-      if (row.child() && row.child().length) {
-        row.child.show();
-      } else {
-        row.child(formatKills(row.data())).show();
-      }
+      row.child(row.child()?.length ? row.child().show() : formatKills(row.data())).show();
       tr.addClass('shown');
     }
   });
 });
+
+// ---------------------------
+// Corp Grouping Toggle
+// ---------------------------
+function toggleCorpGrouping() {
+  const chk = document.querySelector('.group-button');
+  if (!chk) return;
+
+  const group = chk.checked;
+  table.column(group ? 10 : 2).order('asc');
+  table.rowGroup().enable(group);
+  table.column('corp_thumb').visible(!group, false);
+  table.column('corp_name').visible(!group, false);
+  table.column('alliance_name').visible(!group, false);
+  table.draw();
+}
