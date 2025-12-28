@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const eve_image_server = 'https://images.evetech.net';
-const zkill_server = 'https://zkillboard.com';
+const eve_image_server = "https://images.evetech.net";
+const zkill_server = "https://zkillboard.com";
 
 /* -------------------------
  * Types
@@ -38,23 +38,26 @@ interface CharacterRow {
 }
 
 interface MetaMessage {
-  _meta: 'start' | 'progress' | 'done';
+  _meta: "start" | "progress" | "done";
   total?: number;
   sent?: number;
 }
 
-/* -------------------------
- * Utilities
- * ------------------------- */
+/**
+ * Escape HTML special characters in the given value.
+ *
+ * @param str - The value to escape; will be converted to a string if necessary
+ * @returns The input converted to a string with &, <, >, " and ' replaced by their HTML entity equivalents
+ */
 
 function escapeHtml(str: unknown): string {
-  return String(str ?? '').replace(/[&<>"']/g, (s) => {
+  return String(str ?? "").replace(/[&<>"']/g, (s) => {
     const map: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
     };
     return map[s];
   });
@@ -63,18 +66,6 @@ function escapeHtml(str: unknown): string {
 /* -------------------------
  * Globals
  * ------------------------- */
-
-/* -------------------------
- * Accessibility
- * ------------------------- */
-
-function activatePasteHintOnce(): void {
-  const hint = document.getElementById('paste-hint');
-  if (!hint || hint.classList.contains('active')) return;
-
-  hint.classList.add('active');
-  hint.textContent = hint.textContent ?? '';
-}
 
 /* -------------------------
  * Data formatting
@@ -96,10 +87,10 @@ const dataFormatting = {
 
   char_thumb(_data: unknown, _type: unknown, row: CharacterRow): string {
     const img = `<img src="${eve_image_server}/characters/${row.character_id}/portrait" height="32" width="32" alt="${escapeHtml(
-      row.name
+      row.name,
     )} thumbnail">`;
     const span = `<span><img src="${eve_image_server}/characters/${row.character_id}/portrait" height="512" width="512" alt="${escapeHtml(
-      row.name
+      row.name,
     )} portrait"></span>`;
     return img + span;
   },
@@ -119,7 +110,7 @@ const dataFormatting = {
       return `<img src="${eve_image_server}/alliances/${row.alliance_id}/logo" height="32" width="32"
         alt="${escapeHtml(row.alliance_name)} thumbnail">`;
     }
-    return '';
+    return "";
   },
 
   alliance_name(_data: unknown, _type: unknown, row: CharacterRow): string {
@@ -134,7 +125,7 @@ const dataFormatting = {
       first.alliance_name,
       first.corp_id,
       first.corp_danger,
-      first.is_npc_corp
+      first.is_npc_corp,
     );
   },
 
@@ -143,28 +134,28 @@ const dataFormatting = {
     const $row = $(row);
 
     if (rowData.danger > 50) {
-      $('td:eq(1)', $row).addClass('danger_thumb');
-      $('td:eq(4)', $row).addClass('danger');
+      $("td:eq(1)", $row).addClass("danger_thumb");
+      $("td:eq(4)", $row).addClass("danger");
     } else {
-      $('td:eq(1)', $row).addClass('thumb');
+      $("td:eq(1)", $row).addClass("thumb");
     }
 
     if (rowData.security < 0) {
-      $('td:eq(6)', $row).addClass('danger');
+      $("td:eq(6)", $row).addClass("danger");
     }
 
     if (rowData.corp_danger > 50) {
-      $('td:eq(9)', $row).addClass('danger_thumb');
+      $("td:eq(9)", $row).addClass("danger_thumb");
     } else if (rowData.is_npc_corp) {
-      $('td:eq(9)', $row).addClass('safe_thumb');
+      $("td:eq(9)", $row).addClass("safe_thumb");
     } else {
-      $('td:eq(9)', $row).addClass('blank_thumb');
+      $("td:eq(9)", $row).addClass("blank_thumb");
     }
 
     if (!rowData.analyze_kills || rowData.kills === 0) {
-      $('td:eq(0)', $row).addClass('blank-control');
+      $("td:eq(0)", $row).addClass("blank-control");
     } else {
-      $('td:eq(0)', $row).addClass('details-control');
+      $("td:eq(0)", $row).addClass("details-control");
     }
   },
 };
@@ -175,19 +166,24 @@ const dataFormatting = {
 
 let table: DataTables.Api;
 
+/**
+ * Create (or reuse) the DataTable bound to the '#chars' table element with the application's column layout and behavior.
+ *
+ * The table is configured with renderer hooks for thumbnails, names, corporation/alliance links, a created-row post-processing hook, and row-grouping (disabled by default). If an existing DataTable instance for '#chars' already exists, that instance is reused.
+ */
 function initTable(): void {
-  if ((($ as any).fn.DataTable as any).isDataTable('#chars')) {
-    table = $('#chars').DataTable(); // get existing instance
+  if ((($ as any).fn.DataTable as any).isDataTable("#chars")) {
+    table = $("#chars").DataTable(); // get existing instance
     return;
   }
 
-  table = $('#chars').DataTable({
+  table = $("#chars").DataTable({
     columns: [
       {
         data: null,
-        className: 'details-control',
+        className: "details-control",
         orderable: false,
-        defaultContent: '',
+        defaultContent: "",
       },
       {
         data: null,
@@ -195,47 +191,48 @@ function initTable(): void {
         orderable: false,
       },
       {
-        data: 'name',
+        data: "name",
         render: dataFormatting.char_name,
       },
-      { data: 'age' },
-      { data: 'danger' },
-      { data: 'gang' },
-      { data: 'security' },
-      { data: 'kills' },
-      { data: 'losses' },
+      { data: "age" },
+      { data: "danger" },
+      { data: "gang" },
+      { data: "security" },
+      { data: "kills" },
+      { data: "losses" },
       {
         data: null,
         render: dataFormatting.corp_thumb,
         orderable: false,
-        name: 'corp_thumb',
+        name: "corp_thumb",
       },
       {
-        data: 'corp_name',
+        data: "corp_name",
         render: dataFormatting.corp_name,
-        name: 'corp_name',
+        name: "corp_name",
       },
       {
         data: null,
+        render: dataFormatting.alliance_thumb,
         orderable: false,
       },
       {
-        data: 'alliance_name',
+        data: "alliance_name",
         render: dataFormatting.alliance_name,
-        name: 'alliance_name',
+        name: "alliance_name",
       },
-      { data: 'last_kill_time' },
-      { data: 'corp_age' },
-      { data: 'corp_id' },
-      { data: 'corp_danger' },
-      { data: 'is_npc_corp' },
+      { data: "last_kill_time" },
+      { data: "corp_age" },
+      { data: "corp_id" },
+      { data: "corp_danger" },
+      { data: "is_npc_corp" },
     ],
 
     columnDefs: [{ targets: [0, 1, 9, 11], orderable: false }],
 
     createdRow: dataFormatting.postProcess,
     rowGroup: {
-      dataSrc: 'corp_name',
+      dataSrc: "corp_name",
       enable: false,
       startRender: dataFormatting.row_group,
     },
@@ -247,24 +244,66 @@ function initTable(): void {
 }
 
 /* -------------------------
- * Network / streaming
+ * Row details toggle
  * ------------------------- */
 
+function initRowDetailsToggle(): void {
+  $("#chars tbody").on(
+    "click",
+    "td.details-control",
+    function (this: HTMLTableCellElement) {
+      const tr = $(this).closest("tr");
+      const row = table.row(tr);
+
+      // DataTables typings are incomplete for child rows
+      const child = row.child() as DataTables.RowChild;
+
+      if (child.isShown()) {
+        // Row already open → close it
+        child.hide();
+        tr.removeClass("shown");
+      } else {
+        // Row closed → open it
+        if (child() && child().length) {
+          child.show();
+        } else {
+          const data = row.data() as CharacterRow;
+          child(formatKills(data)).show();
+        }
+        tr.addClass("shown");
+      }
+    },
+  );
+}
+
+/**
+ * Submits a list of character names to the server and streams returned character rows into the UI table while reflecting loading progress.
+ *
+ * @param names - Plain-text list of character names to fetch (for example, pasted text or newline-separated names)
+ */
+
 async function postNames(names: string): Promise<void> {
-  $('html').addClass('wait');
+  $("html").addClass("wait");
   table.clear().draw(false);
 
-  const response = await fetch('info', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  const response = await fetch("info", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ characters: names }),
   });
+
+  if (!response.ok) {
+    console.error("Request failed:", response.status);
+    $("html").removeClass("wait");
+    updateStatus(`Error: ${response.statusText}`);
+    return;
+  }
 
   if (!response.body) return;
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let buffer = '';
+  let buffer = "";
 
   try {
     while (true) {
@@ -272,19 +311,25 @@ async function postNames(names: string): Promise<void> {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
 
       for (const line of lines) {
         if (!line.trim()) continue;
 
-        const msg = JSON.parse(line) as CharacterRow | MetaMessage;
+        let msg: CharacterRow | MetaMessage;
+        try {
+          msg = JSON.parse(line) as CharacterRow | MetaMessage;
+        } catch {
+          console.warn("Skipping malformed line:", line);
+          continue;
+        }
 
-        if ('_meta' in msg) {
-          if (msg._meta === 'start') {
+        if ("_meta" in msg) {
+          if (msg._meta === "start") {
             setTableBusy(true);
             updateStatus(`Loading ${msg.total} characters`);
-          } else if (msg._meta === 'progress') {
+          } else if (msg._meta === "progress") {
             updateStatus(`Loaded ${msg.sent} of ${msg.total}`);
           } else {
             setTableBusy(false);
@@ -297,74 +342,104 @@ async function postNames(names: string): Promise<void> {
       }
     }
   } catch (err) {
-    console.error('stream error', err);
+    console.error("stream error", err);
   } finally {
-    $('html').removeClass('wait');
+    $("html").removeClass("wait");
   }
 }
 
-/* -------------------------
- * Helpers
- * ------------------------- */
+/**
+ * Builds a two-cell HTML snippet for a corporation grouping row containing the corp logo and its display name (optionally with alliance).
+ *
+ * @param group - The corporation display name
+ * @param alliance_name - The alliance name to append in parentheses when present
+ * @param corp_id - Corporation ID used to construct the logo image URL
+ * @param corp_danger - Numeric danger score; when greater than 50 the name cell receives the `danger` class
+ * @param npc_corp - When true the name cell receives the `safe` class
+ * @returns An HTML string with a logo `<td>` and a name `<td>`; text values are HTML-escaped and the name cell is annotated with `danger` or `safe` when applicable
+ */
 
 function groupRow(
   group: string,
   alliance_name: string,
   corp_id: number,
   corp_danger: number,
-  npc_corp: boolean
+  npc_corp: boolean,
 ): string {
   const img = `<td class="blank_thumb"><img src="${eve_image_server}/corporations/${corp_id}/logo" height="32" width="32"></td>`;
-  let corpClass = '';
+  let corpClass = "";
   if (corp_danger > 50) corpClass = 'class="danger"';
   else if (npc_corp) corpClass = 'class="safe"';
 
-  const alliance = alliance_name ? ` (${escapeHtml(alliance_name)})` : '';
+  const alliance = alliance_name ? ` (${escapeHtml(alliance_name)})` : "";
   return img + `<td ${corpClass}>${escapeHtml(group)}${alliance}</td>`;
 }
 
+/**
+ * Toggle corporation grouping and adjust related column sorting and visibility based on the `.group-button` checkbox state.
+ *
+ * When the checkbox is checked, enable row grouping and sort by the alliance column; when unchecked, disable grouping and sort by the character name column. Also show or hide the `corp_thumb`, `corp_name`, and `alliance_name` columns to match the grouping state, then redraw the table.
+ */
 function toggleCorpGrouping(): void {
-  const chk = document.querySelector<HTMLInputElement>('.group-button');
+  const chk = document.querySelector<HTMLInputElement>(".group-button");
   if (!chk) return;
 
   if (chk.checked) {
-    table.column(10).order('asc');
+    table.column(10).order("asc");
     table.rowGroup().enable();
   } else {
-    table.column(2).order('asc');
+    table.column(2).order("asc");
     table.rowGroup().disable();
   }
 
-  table.column('corp_thumb:name').visible(!chk.checked, false);
-  table.column('corp_name:name').visible(!chk.checked, false);
-  table.column('alliance_name:name').visible(!chk.checked, false);
+  table.column("corp_thumb:name").visible(!chk.checked, false);
+  table.column("corp_name:name").visible(!chk.checked, false);
+  table.column("alliance_name:name").visible(!chk.checked, false);
   table.draw();
 }
 
+/**
+ * Updates the table's busy state by setting the `aria-busy` attribute on the element with id "chars".
+ *
+ * @param isBusy - `true` to mark the table as busy, `false` to mark it as not busy
+ */
 function setTableBusy(isBusy: boolean): void {
-  const el = document.getElementById('chars');
-  el?.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+  const el = document.getElementById("chars");
+  el?.setAttribute("aria-busy", isBusy ? "true" : "false");
 }
 
+/**
+ * Updates the visible status message for the characters table.
+ *
+ * @param text - The text to display in the element with id `table-status`
+ */
 function updateStatus(text: string): void {
-  const status = document.getElementById('table-status');
+  const status = document.getElementById("table-status");
   if (status) status.textContent = text;
 }
 
+/**
+ * Handle a paste event by extracting plain text from the clipboard and submitting it to be processed.
+ *
+ * @param e - The clipboard paste event containing the clipboard data
+ */
 function handlePaste(e: ClipboardEvent): void {
   e.preventDefault();
   e.stopPropagation();
 
-  const text = e.clipboardData?.getData('text') ?? '';
+  const text = e.clipboardData?.getData("text") ?? "";
   if (text) postNames(text);
 }
 
-/* -------------------------
- * Details row
- * ------------------------- */
+/**
+ * Render a details HTML table showing kill statistics for a character.
+ *
+ * @param d - CharacterRow containing the character's kill metrics and last kill timestamp
+ * @returns An HTML string containing an embedded table with explorer kills, total kills, "Since" (last kill time), and kills in the last week; returns `''` if `d.kills` is zero.
+ */
 
 function formatKills(d: CharacterRow): string {
-  if (d.kills === 0) return '';
+  if (d.kills === 0) return "";
 
   return `<table class="embedded">
     <thead><tr>
@@ -390,22 +465,7 @@ function formatKills(d: CharacterRow): string {
 
 $(document).ready(() => {
   initTable();
-  /*        table = $('#chars').DataTable({
-                order: [
-                    [10, 'asc'],
-                    [2, 'asc'],
-                ],
-                deferRender: true,
-                createdRow: dataFormatting.postProcess,
-                rowGroup: {
-                    dataSrc: 'corp_name',
-                    enable: false,
-                    startRender: dataFormatting.row_group,
-                },
-                stateSave: true,
-                autoWidth: false,
-            });
-    */
+  initRowDetailsToggle();
   toggleCorpGrouping();
-  document.addEventListener('paste', handlePaste);
+  document.addEventListener("paste", handlePaste);
 });
