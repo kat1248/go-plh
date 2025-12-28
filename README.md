@@ -38,6 +38,12 @@ Quick steps to build and run the server locally:
 go run . -local -port 8443 -debug
 ```
 
+- Compile the TypeScript
+
+```sh
+npx tsc
+```
+
 - Build a binary and run it:
 
 ```sh

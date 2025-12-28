@@ -6,7 +6,6 @@
   --dt-bg-selected: #b0bed9;
   --dt-border: #ddd;
   --dt-border-strong: #111;
-
   --dt-accent: #585858;
   --dt-accent-active: #2b2b2b;
   --dt-focus: 2px solid #005fcc;
@@ -149,7 +148,7 @@ table.dataTable thead .sorting_desc {
   outline: var(--dt-focus);
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
   .dataTables_wrapper {
     justify-content: center;
     text-align: center;
