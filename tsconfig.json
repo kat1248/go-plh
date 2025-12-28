@@ -4,16 +4,19 @@
         "module": "ES2020",
         "moduleResolution": "bundler",
         "outDir": "./static",
-
         "lib": [
             "DOM",
             "DOM.Iterable",
             "ES2020"
         ],
         "strict": true,
-+       "skipLibCheck": true,
-+       "sourceMap": true
+        "skipLibCheck": true,
+        "sourceMap": true
     },
-    "include": ["*.ts"],
-    "exclude": ["node_modules"]
+    "include": [
+        "*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }

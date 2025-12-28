@@ -7,24 +7,7 @@ import (
 	"net/http"
 )
 
-// Default values for tests or external calls
-var (
-	defaultHTTPClient = &http.Client{}
-	defaultUserAgent  = "go-plh-client/1.0"
-	defaultCCPURL     = "https://esi.evetech.net/latest"
-	defaultZKillURL   = "https://zkillboard.com/api"
-)
-
-// fetchURL performs an HTTP request using the provided client and userAgent.
-// If client or userAgent is nil/empty, defaults are used.
-func fetchURL(ctx context.Context, client *http.Client, method, url string, params map[string]string, body io.Reader, userAgent string) ([]byte, error) {
-	if client == nil {
-		client = defaultHTTPClient
-	}
-	if userAgent == "" {
-		userAgent = defaultUserAgent
-	}
-
+func fetchURL(ctx context.Context, method, url string, params map[string]string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
@@ -41,12 +24,12 @@ func fetchURL(ctx context.Context, client *http.Client, method, url string, para
 		req.URL.RawQuery = q.Encode()
 	}
 
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
+	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -59,15 +42,39 @@ func fetchURL(ctx context.Context, client *http.Client, method, url string, para
 	return respBody, nil
 }
 
-// Wrapper functions for CCP and zKill APIs
 func ccpGet(ctx context.Context, url string, params map[string]string) ([]byte, error) {
-	return fetchURL(ctx, httpClient, http.MethodGet, defaultCCPURL+url, params, nil, userAgent)
+	return fetchURL(ctx, http.MethodGet, ccpEsiURL+url, params, nil)
 }
 
 func ccpPost(ctx context.Context, url string, params map[string]string, body io.Reader) ([]byte, error) {
-	return fetchURL(ctx, httpClient, http.MethodPost, defaultCCPURL+url, params, body, userAgent)
+	return fetchURL(ctx, http.MethodPost, ccpEsiURL+url, params, body)
 }
 
 func zkillGet(ctx context.Context, url string) ([]byte, error) {
-	return fetchURL(ctx, httpClient, http.MethodGet, defaultZKillURL+url, nil, nil, userAgent)
+	return fetchURL(ctx, http.MethodGet, zkillAPIURL+url, nil, nil)
 }
+
+// func zkillCheck() bool {
+// 	req, err := http.NewRequest(http.MethodGet, zkillURL, nil)
+// 	if err != nil {
+// 		return false
+// 	}
+// 	req.Header.Add("User-Agent", userAgent)
+
+// 	// temporarily turn off retries
+// 	retries := httpClient.MaxRetries
+// 	httpClient.MaxRetries = 0
+// 	defer func() {
+// 		httpClient.MaxRetries = retries
+// 	}()
+// 	resp, err := httpClient.Do(req)
+// 	if err != nil {
+// 		return false
+// 	}
+
+// 	if resp.StatusCode == http.StatusServiceUnavailable {
+// 		return false
+// 	}
+
+// 	return true
+// }
