@@ -1,16 +1,27 @@
 {
-  "name": "go-plh",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "lint": "eslint 'static/**/*.js' --max-warnings=0",
-    "format": "prettier --write 'static/**/*.js'",
-    "check": "npm run lint && npx prettier --check 'static/**/*.js'"
-  },
-  "devDependencies": {
-    "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-security": "^3.0.1",
-    "prettier": "^3.7.4"
-  }
+    "name": "go-plh",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "lint": "eslint '*.ts' --max-warnings=0",
+        "lint:css": "stylelint 'static/**/*.css'",
+        "format": "prettier --write '*.ts'",
+        "check": "npm run lint && npm run lint:css && npx prettier --check '*.ts'",
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "@types/datatables.net": "^1.10.28",
+        "@types/datatables.net-rowgroup": "^1.1.5",
+        "@types/jquery": "^3.5.33",
+        "@typescript-eslint/eslint-plugin": "^8.50.1",
+        "@typescript-eslint/parser": "^8.50.1",
+        "datatables.net": "^2.3.6",
+        "eslint": "^9.39.2",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-security": "^3.0.1",
+        "prettier": "^3.7.4",
+        "stylelint": "^16.26.1",
+        "stylelint-config-standard": "^39.0.1",
+        "typescript": "^5.9.3"
+    }
 }

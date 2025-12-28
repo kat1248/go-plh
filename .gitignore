@@ -6,3 +6,4 @@ vendor
 certs/
 node_modules/
 patches/
+static/sclh.js*

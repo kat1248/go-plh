@@ -31,6 +31,12 @@ $ go get -u github.com/imdario/mergo
 
 Quick steps to build and run the server locally:
 
+- Compile the TypeScript
+
+```sh
+npx tsc
+```
+
 - Run directly (recommended for development):
 
 ```sh
