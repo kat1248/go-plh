@@ -404,22 +404,6 @@ function formatKills(d: CharacterRow): string {
 
 $(document).ready(() => {
   initTable();
-  /*        table = $('#chars').DataTable({
-                order: [
-                    [10, 'asc'],
-                    [2, 'asc'],
-                ],
-                deferRender: true,
-                createdRow: dataFormatting.postProcess,
-                rowGroup: {
-                    dataSrc: 'corp_name',
-                    enable: false,
-                    startRender: dataFormatting.row_group,
-                },
-                stateSave: true,
-                autoWidth: false,
-            });
-    */
   toggleCorpGrouping();
   document.addEventListener('paste', handlePaste);
 });
