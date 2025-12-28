@@ -64,7 +64,7 @@ func ccpGet(ctx context.Context, url string, params map[string]string) ([]byte, 
 	return fetchURL(ctx, httpClient, http.MethodGet, defaultCCPURL+url, params, nil, userAgent)
 }
 
-func ccpPost(ctx context.Context, url string, params map[string]string, body io.Reader) ([]byte, error) ([]byte, error) {
+func ccpPost(ctx context.Context, url string, params map[string]string, body io.Reader) ([]byte, error) {
 	return fetchURL(ctx, httpClient, http.MethodPost, defaultCCPURL+url, params, body, userAgent)
 }
 
