@@ -217,6 +217,7 @@ function initTable(): void {
       },
       {
         data: null,
+        render: dataFormatting.alliance_thumb,
         orderable: false,
       },
       {
