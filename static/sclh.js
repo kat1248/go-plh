@@ -1,5 +1,4 @@
 'use strict';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const eve_image_server = 'https://images.evetech.net';
 const zkill_server = 'https://zkillboard.com';
 /* -------------------------
