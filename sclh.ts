@@ -65,20 +65,6 @@ function escapeHtml(str: unknown): string {
  * Globals
  * ------------------------- */
 
-/**
- * Activates the page's paste hint so it is marked as used and its text is preserved.
- *
- * Adds the 'active' class to the element with id 'paste-hint' if it exists and is not already active, and ensures the element's text content is a defined string.
- */
-
-function activatePasteHintOnce(): void {
-  const hint = document.getElementById('paste-hint');
-  if (!hint || hint.classList.contains('active')) return;
-
-  hint.classList.add('active');
-  hint.textContent = hint.textContent ?? '';
-}
-
 /* -------------------------
  * Data formatting
  * ------------------------- */

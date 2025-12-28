@@ -43,7 +43,7 @@ jobs:
         run: npm install --save-dev @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-security
 
       - name: Run ESLint (no auto-fix)
-        run: npx eslint 'sclh.ts' --max-warnings=0 --no-ignore
+        run: npx eslint '*.ts' --max-warnings=0
 
       - name: Run Prettier check
         run: npx prettier --check '*.ts'
