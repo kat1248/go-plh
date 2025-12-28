@@ -1,9 +1,12 @@
 'use strict';
 const eve_image_server = 'https://images.evetech.net';
 const zkill_server = 'https://zkillboard.com';
-/* -------------------------
- * Utilities
- * ------------------------- */
+/**
+ * Escape special HTML characters in a value so it can be inserted into HTML safely.
+ *
+ * @param {*} str - Value to escape; null or undefined are treated as an empty string.
+ * @returns {string} The input converted to a string with `&`, `<`, `>`, `"` and `'` replaced by their HTML entities.
+ */
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, (s) => {
     const map = {
@@ -19,9 +22,11 @@ function escapeHtml(str) {
 /* -------------------------
  * Globals
  * ------------------------- */
-/* -------------------------
- * Accessibility
- * ------------------------- */
+/**
+ * Marks the '#paste-hint' element as active and ensures it has defined text content.
+ *
+ * If an element with id "paste-hint" is not present or already has the "active" class, the function does nothing.
+ */
 function activatePasteHintOnce() {
   const hint = document.getElementById('paste-hint');
   if (!hint || hint.classList.contains('active')) return;
@@ -107,6 +112,13 @@ const dataFormatting = {
  * DataTable Initialization
  * ------------------------- */
 let table;
+/**
+ * Initialize the characters DataTable on the '#chars' element if no instance exists.
+ *
+ * Configures column definitions and renderers (using the `dataFormatting` helpers), attaches
+ * the `createdRow` post-processing hook, enables a disabled-by-default row grouping start renderer,
+ * and sets common DataTables options (deferRender, stateSave, and autoWidth disabled).
+ */
 function initTable() {
   if ($.fn.DataTable.isDataTable('#chars')) {
     table = $('#chars').DataTable(); // get existing instance
@@ -173,9 +185,13 @@ function initTable() {
     autoWidth: false,
   });
 }
-/* -------------------------
- * Network / streaming
- * ------------------------- */
+/**
+ * Send a batch of character names to the server, stream the newline-delimited JSON response, and populate the table while updating UI status.
+ *
+ * Processes server messages in two forms: progress metadata objects with an `_meta` key (used to toggle busy state and update status text) and row objects (added to the DataTable). The function also adds a global "wait" CSS class, clears the existing table before loading, and removes the wait state when finished or on error.
+ *
+ * @param {string} names - The characters payload to send to the `/info` endpoint (as a single string in the format accepted by the server).
+ */
 async function postNames(names) {
   $('html').addClass('wait');
   table.clear().draw(false);
@@ -219,9 +235,15 @@ async function postNames(names) {
     $('html').removeClass('wait');
   }
 }
-/* -------------------------
- * Helpers
- * ------------------------- */
+/**
+ * Build two HTML table cells for a grouped corporation row: a 32×32 logo cell and a corp-name cell.
+ * @param {string} group - The corporation name to display.
+ * @param {string} alliance_name - The alliance name to display in parentheses when present.
+ * @param {number} corp_id - The corporation ID used to construct the logo image URL.
+ * @param {number} corp_danger - Numeric danger level; values greater than 50 mark the corp as dangerous.
+ * @param {boolean} npc_corp - When true, marks the corp as safe.
+ * @returns {string} An HTML string containing two <td> elements: the logo image cell and the corp-name cell (escaped), with the name cell given class "danger" or "safe" when applicable.
+ */
 function groupRow(group, alliance_name, corp_id, corp_danger, npc_corp) {
   const img = `<td class="blank_thumb"><img src="${eve_image_server}/corporations/${corp_id}/logo" height="32" width="32"></td>`;
   let corpClass = '';
@@ -230,6 +252,13 @@ function groupRow(group, alliance_name, corp_id, corp_danger, npc_corp) {
   const alliance = alliance_name ? ` (${escapeHtml(alliance_name)})` : '';
   return img + `<td ${corpClass}>${escapeHtml(group)}${alliance}</td>`;
 }
+/**
+ * Toggle grouping of table rows by corporation and adjust related column visibility and ordering.
+ *
+ * When the control with class "group-button" is checked, enable row grouping by corporation and order by the corporation column;
+ * when unchecked, disable grouping and order by the name column. Also show or hide the corporation logo, corporation name,
+ * and alliance name columns to match the grouping state, then redraw the table.
+ */
 function toggleCorpGrouping() {
   const chk = document.querySelector('.group-button');
   if (!chk) return;
@@ -245,23 +274,40 @@ function toggleCorpGrouping() {
   table.column('alliance_name:name').visible(!chk.checked, false);
   table.draw();
 }
+/**
+ * Set the table element's ARIA busy state.
+ * @param {boolean} isBusy - If true, sets `aria-busy` to `"true"`; otherwise sets it to `"false"`. No effect if the `#chars` element is not present.
+ */
 function setTableBusy(isBusy) {
   const el = document.getElementById('chars');
   el?.setAttribute('aria-busy', isBusy ? 'true' : 'false');
 }
+/**
+ * Update the visible table status message.
+ *
+ * @param {string} text - The status text to display inside the element with id "table-status".
+ */
 function updateStatus(text) {
   const status = document.getElementById('table-status');
   if (status) status.textContent = text;
 }
+/**
+ * Process a paste event and submit plain-text clipboard contents to postNames.
+ * This function prevents the default paste behavior and stops event propagation, then reads the clipboard text and calls postNames when text is present.
+ * @param {ClipboardEvent} e - The paste event containing clipboard data.
+ */
 function handlePaste(e) {
   e.preventDefault();
   e.stopPropagation();
   const text = e.clipboardData?.getData('text') ?? '';
   if (text) postNames(text);
 }
-/* -------------------------
- * Details row
- * ------------------------- */
+/**
+ * Produce an HTML snippet with kill statistics for a data row.
+ *
+ * @param {Object} d - Data object for the row. Expected properties: `kills` (number), `recent_explorer_total` (number), `recent_kill_total` (number), `last_kill_time` (string), and `kills_last_week` (number).
+ * @returns {string} An HTML table showing explorer ships killed, total kills, last kill time, and kills in the last week; returns an empty string when `d.kills === 0`.
+ */
 function formatKills(d) {
   if (d.kills === 0) return '';
   return `<table class="embedded">

@@ -43,9 +43,12 @@ interface MetaMessage {
   sent?: number;
 }
 
-/* -------------------------
- * Utilities
- * ------------------------- */
+/**
+ * Escape HTML special characters in the given value.
+ *
+ * @param str - The value to escape; will be converted to a string if necessary
+ * @returns The input converted to a string with &, <, >, " and ' replaced by their HTML entity equivalents
+ */
 
 function escapeHtml(str: unknown): string {
   return String(str ?? '').replace(/[&<>"']/g, (s) => {
@@ -64,9 +67,11 @@ function escapeHtml(str: unknown): string {
  * Globals
  * ------------------------- */
 
-/* -------------------------
- * Accessibility
- * ------------------------- */
+/**
+ * Activates the page's paste hint so it is marked as used and its text is preserved.
+ *
+ * Adds the 'active' class to the element with id 'paste-hint' if it exists and is not already active, and ensures the element's text content is a defined string.
+ */
 
 function activatePasteHintOnce(): void {
   const hint = document.getElementById('paste-hint');
@@ -175,6 +180,11 @@ const dataFormatting = {
 
 let table: DataTables.Api;
 
+/**
+ * Create (or reuse) the DataTable bound to the '#chars' table element with the application's column layout and behavior.
+ *
+ * The table is configured with renderer hooks for thumbnails, names, corporation/alliance links, a created-row post-processing hook, and row-grouping (disabled by default). If an existing DataTable instance for '#chars' already exists, that instance is reused.
+ */
 function initTable(): void {
   if ((($ as any).fn.DataTable as any).isDataTable('#chars')) {
     table = $('#chars').DataTable(); // get existing instance
@@ -247,9 +257,11 @@ function initTable(): void {
   });
 }
 
-/* -------------------------
- * Network / streaming
- * ------------------------- */
+/**
+ * Submits a list of character names to the server and streams returned character rows into the UI table while reflecting loading progress.
+ *
+ * @param names - Plain-text list of character names to fetch (for example, pasted text or newline-separated names)
+ */
 
 async function postNames(names: string): Promise<void> {
   $('html').addClass('wait');
@@ -317,9 +329,16 @@ async function postNames(names: string): Promise<void> {
   }
 }
 
-/* -------------------------
- * Helpers
- * ------------------------- */
+/**
+ * Builds a two-cell HTML snippet for a corporation grouping row containing the corp logo and its display name (optionally with alliance).
+ *
+ * @param group - The corporation display name
+ * @param alliance_name - The alliance name to append in parentheses when present
+ * @param corp_id - Corporation ID used to construct the logo image URL
+ * @param corp_danger - Numeric danger score; when greater than 50 the name cell receives the `danger` class
+ * @param npc_corp - When true the name cell receives the `safe` class
+ * @returns An HTML string with a logo `<td>` and a name `<td>`; text values are HTML-escaped and the name cell is annotated with `danger` or `safe` when applicable
+ */
 
 function groupRow(
   group: string,
@@ -337,6 +356,11 @@ function groupRow(
   return img + `<td ${corpClass}>${escapeHtml(group)}${alliance}</td>`;
 }
 
+/**
+ * Toggle corporation grouping and adjust related column sorting and visibility based on the `.group-button` checkbox state.
+ *
+ * When the checkbox is checked, enable row grouping and sort by the alliance column; when unchecked, disable grouping and sort by the character name column. Also show or hide the `corp_thumb`, `corp_name`, and `alliance_name` columns to match the grouping state, then redraw the table.
+ */
 function toggleCorpGrouping(): void {
   const chk = document.querySelector<HTMLInputElement>('.group-button');
   if (!chk) return;
@@ -355,16 +379,31 @@ function toggleCorpGrouping(): void {
   table.draw();
 }
 
+/**
+ * Updates the table's busy state by setting the `aria-busy` attribute on the element with id "chars".
+ *
+ * @param isBusy - `true` to mark the table as busy, `false` to mark it as not busy
+ */
 function setTableBusy(isBusy: boolean): void {
   const el = document.getElementById('chars');
   el?.setAttribute('aria-busy', isBusy ? 'true' : 'false');
 }
 
+/**
+ * Updates the visible status message for the characters table.
+ *
+ * @param text - The text to display in the element with id `table-status`
+ */
 function updateStatus(text: string): void {
   const status = document.getElementById('table-status');
   if (status) status.textContent = text;
 }
 
+/**
+ * Handle a paste event by extracting plain text from the clipboard and submitting it to be processed.
+ *
+ * @param e - The clipboard paste event containing the clipboard data
+ */
 function handlePaste(e: ClipboardEvent): void {
   e.preventDefault();
   e.stopPropagation();
@@ -373,9 +412,12 @@ function handlePaste(e: ClipboardEvent): void {
   if (text) postNames(text);
 }
 
-/* -------------------------
- * Details row
- * ------------------------- */
+/**
+ * Render a details HTML table showing kill statistics for a character.
+ *
+ * @param d - CharacterRow containing the character's kill metrics and last kill timestamp
+ * @returns An HTML string containing an embedded table with explorer kills, total kills, "Since" (last kill time), and kills in the last week; returns `''` if `d.kills` is zero.
+ */
 
 function formatKills(d: CharacterRow): string {
   if (d.kills === 0) return '';
