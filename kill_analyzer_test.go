@@ -29,10 +29,11 @@ func TestFetchRecentKillHistory_Counts(t *testing.T) {
 	}))
 	defer s.Close()
 
-	// override zkill API base
+	origClient := httpClient
 	origZkill := zkillAPIURL
+	httpClient = &http.Client{}
 	zkillAPIURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill }()
+	defer func() { zkillAPIURL = origZkill; httpClient = origClient }()
 
 	r := fetchRecentKillHistory(context.Background(), 123)
 	if r.err != nil {
@@ -75,12 +76,13 @@ func TestFetchKillHistory_ExplorerAndCounts(t *testing.T) {
 	}))
 	defer s.Close()
 
+	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
+	httpClient = &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
-
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
 	r := fetchKillHistory(context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
@@ -107,9 +109,11 @@ func TestFetchRecentKillHistory_ContextCancelled(t *testing.T) {
 	}))
 	defer s.Close()
 
+	origClient := httpClient
 	origZkill := zkillAPIURL
+	httpClient = &http.Client{}
 	zkillAPIURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill }()
+	defer func() { zkillAPIURL = origZkill; httpClient = origClient }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
@@ -136,11 +140,13 @@ func BenchmarkFetchKillHistory_Small(b *testing.B) {
 	}))
 	defer s.Close()
 
+	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
+	httpClient = &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -161,9 +167,11 @@ func TestFetchKillHistory_ZkillError(t *testing.T) {
 	}))
 	defer s.Close()
 
+	origClient := httpClient
 	orig := zkillAPIURL
 	zkillAPIURL = s.URL + "/"
-	defer func() { zkillAPIURL = orig }()
+	httpClient = &http.Client{}
+	defer func() { zkillAPIURL = orig; httpClient = origClient }()
 
 	r := fetchKillHistory(context.Background(), 123)
 	if r.err == nil {
@@ -183,9 +191,11 @@ func TestFetchKillHistory_ContextCancelled(t *testing.T) {
 	}))
 	defer s.Close()
 
+	origClient := httpClient
 	orig := zkillAPIURL
 	zkillAPIURL = s.URL + "/"
-	defer func() { zkillAPIURL = orig }()
+	httpClient = &http.Client{}
+	defer func() { zkillAPIURL = orig; httpClient = origClient }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
@@ -214,11 +224,13 @@ func TestKillmailCache_Basic(t *testing.T) {
 	}))
 	defer s.Close()
 
+	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
+	httpClient = &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
 
 	// reset cache
 	killmailCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
@@ -256,11 +268,13 @@ func TestKillmailCache_Expiration(t *testing.T) {
 	}))
 	defer s.Close()
 
+	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
+	httpClient = &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
 
 	// short TTL cache for test
 	killmailCache = cache.New[string, any](50*time.Millisecond, 10*time.Millisecond)
@@ -303,11 +317,13 @@ func TestKillmailSingleflight_Deduplication(t *testing.T) {
 	}))
 	defer s.Close()
 
+	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
+	httpClient = &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
 
 	// reset cache and singleflight
 	killmailCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
