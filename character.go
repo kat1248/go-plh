@@ -31,6 +31,14 @@ func (c characterData) String() string {
 	return c.Name
 }
 
+// fetchCharacterData orchestrates retrieval and aggregation of all available data for a character name.
+// 
+// It resolves the character ID, concurrently fetches CCP record, zKillboard record (when available),
+// corporation start date, and additional dependent data (corporation danger, alliance/corporation names,
+// last kill activity, kill histories, and favorite ship name) as applicable, then merges results into a
+// single characterData. If a nickname mapping exists for the provided name, it is applied to the final
+// character name. The function returns a characterResponse containing the aggregated characterData or an
+// error if the character cannot be found or any fetch step fails.
 func fetchCharacterData(ctx context.Context, client *http.Client, name string) *characterResponse {
 	cd := characterData{Name: name}
 
@@ -123,6 +131,11 @@ func (c *characterData) handleMerges(ch chan *characterResponse) error {
 	return nil
 }
 
+// fetchCCPRecord fetches the CCP (ESI) record for the given character ID and returns
+// a characterResponse containing the populated fields Age, CorpID, Security,
+// IsNpcCorp, and AllianceID.
+// If the CCP data cannot be retrieved or parsed, the returned characterResponse
+// contains the corresponding error.
 func fetchCCPRecord(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{}
 
@@ -146,6 +159,9 @@ func fetchCCPRecord(ctx context.Context, client *http.Client, id int) *character
 	return &characterResponse{&cd, nil}
 }
 
+// fetchZKillRecord retrieves zKillboard statistics for the given character ID and returns them wrapped in a characterResponse.
+// The returned characterData will include Danger, Gang, Kills, Losses, HasKillboard (true when kills or losses are non-zero) and mark ZkillUsed true.
+// If fetching or unmarshaling the zKillboard JSON fails, the returned characterResponse will contain the corresponding error.
 func fetchZKillRecord(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{ZkillUsed: false}
 
@@ -170,6 +186,10 @@ func fetchZKillRecord(ctx context.Context, client *http.Client, id int) *charact
 	return &characterResponse{&cd, nil}
 }
 
+// fetchCharacterJSON returns the raw JSON payload for the character with the given ID,
+// using an in-memory cache if a cached entry exists. If the record is not cached it
+// fetches "characters/{id}/" from the CCP ESI endpoint, caches the response, and
+// returns the JSON string or an error if the fetch fails.
 func fetchCharacterJSON(ctx context.Context, client *http.Client, id int) (string, error) {
 	ids := fmt.Sprint(id)
 
@@ -187,6 +207,10 @@ func fetchCharacterJSON(ctx context.Context, client *http.Client, id int) (strin
 	return string(jsonPayload), nil
 }
 
+// fetchZKillJSON retrieves the zKillboard stats JSON for the given character ID,
+// using the in-memory zkillCache to return a cached response when available.
+// It returns the JSON payload as a string, or a non-nil error if the underlying
+// request fails.
 func fetchZKillJSON(ctx context.Context, client *http.Client, id int) (string, error) {
 	ids := fmt.Sprint(id)
 
@@ -204,6 +228,11 @@ func fetchZKillJSON(ctx context.Context, client *http.Client, id int) (string, e
 	return string(jsonPayload), nil
 }
 
+// loadCharacterIds ensures EVE character IDs for the given names are present in the local cache.
+// It skips empty names and any names already cached, POSTs the remaining names to the ESI
+// "universe/ids/" endpoint (datasource=tranquility), and caches any returned character IDs.
+// It returns true when one or more character entries were retrieved and cached, or false with
+// an error if the lookup failed or no entries were found.
 func loadCharacterIds(ctx context.Context, client *http.Client, names []string) (bool, error) {
 	findNames := []string{}
 
@@ -252,6 +281,11 @@ func loadCharacterIds(ctx context.Context, client *http.Client, names []string) 
 	return true, nil
 }
 
+// fetchCharacterID looks up a character's EVE Online ID by character name.
+// It first checks the local cache; if not present it POSTs the name to the ESI
+// "universe/ids/" endpoint (datasource=tranquility), caches the discovered ID,
+// and returns it. Returns 0 and a non-nil error if the name is not found or if
+// there is a request/response marshaling or parsing error.
 func fetchCharacterID(ctx context.Context, client *http.Client, name string) (int, error) {
 	id, found := ccpCache.Get(name)
 	if found {
@@ -290,6 +324,10 @@ func fetchCharacterID(ctx context.Context, client *http.Client, name string) (in
 	return cid, nil
 }
 
+// fetchCorporationName retrieves the corporation name for the given corporation ID.
+// It returns a characterResponse whose characterData.CorpName is populated from the in-memory cache
+// when available or fetched from the CCP API and then cached. If fetching or JSON unmarshalling fails,
+// the returned characterResponse contains an error.
 func fetchCorporationName(ctx context.Context, client *http.Client, id int) *characterResponse {
 	ids := fmt.Sprint(id)
 
@@ -321,6 +359,8 @@ func fetchCorporationName(ctx context.Context, client *http.Client, id int) *cha
 	return &characterResponse{&cd, nil}
 }
 
+// fetchAllianceName retrieves the alliance name for the given alliance ID and returns it wrapped in a characterResponse.
+// If id is 0, it returns an empty AllianceName. It consults an internal cache and caches successful lookups; on failure it returns a characterResponse containing the error.
 func fetchAllianceName(ctx context.Context, client *http.Client, id int) *characterResponse {
 	if id == 0 {
 		return &characterResponse{&characterData{AllianceName: ""}, nil}
@@ -356,6 +396,9 @@ func fetchAllianceName(ctx context.Context, client *http.Client, id int) *charac
 	return &characterResponse{&cd, nil}
 }
 
+// fetchCorpStartDate fetches a character's corporation history and computes the time since the character first joined a corporation.
+// If a start date is found, CorpAge is set to a human-readable duration since that date; if no entries are present, CorpAge is left empty.
+// It returns a characterResponse containing the populated characterData or an error encountered while fetching or parsing the data.
 func fetchCorpStartDate(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{CorpAge: ""}
 
@@ -385,6 +428,10 @@ func fetchCorpStartDate(ctx context.Context, client *http.Client, id int) *chara
 	return &characterResponse{&cd, nil}
 }
 
+// fetchItemName resolves the human-readable name for a ship item ID and returns it in a characterResponse.
+// On success the returned characterResponse contains characterData.FavoriteShipName set to the resolved name.
+// If the ID cannot be resolved or a remote request/unmarshal fails, the response's error is non-nil.
+// Successful lookups are cached under the key "ship:<id>".
 func fetchItemName(ctx context.Context, client *http.Client, id int) *characterResponse {
 	ids := fmt.Sprint(id)
 
@@ -431,6 +478,11 @@ func fetchItemName(ctx context.Context, client *http.Client, id int) *characterR
 	return &characterResponse{&cd, nil}
 }
 
+// fetchCorpDanger retrieves the danger score for a corporation from zKillboard and caches it.
+// If a cached value exists it is returned immediately. Otherwise it requests zKillboard's
+// stats/corporationID/{id}/ endpoint, parses the danger score into characterData.CorpDanger,
+// caches the value, and returns it wrapped in a characterResponse. On error the returned
+// characterResponse contains the error and a characterData with CorpDanger set to zero.
 func fetchCorpDanger(ctx context.Context, client *http.Client, id int) *characterResponse {
 	ids := fmt.Sprint(id)
 
