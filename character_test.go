@@ -46,15 +46,14 @@ func TestFetchCharacterData_Basic(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
 
-	r := fetchCharacterData(httpClient, context.Background(), "Mynxee")
+	r := fetchCharacterData(client, context.Background(), "Mynxee")
 	if r.err != nil {
 		t.Fatalf("unexpected error: %v", r.err)
 	}
@@ -86,13 +85,12 @@ func TestFetchCharacterData_NotFound(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origCcp := ccpEsiURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	ccpEsiURL = s.URL + "/"
-	defer func() { ccpEsiURL = origCcp; httpClient = origClient }()
+	defer func() { ccpEsiURL = origCcp }()
 
-	r := fetchCharacterData(httpClient, context.Background(), "NoSuch")
+	r := fetchCharacterData(client, context.Background(), "NoSuch")
 	if r.err == nil {
 		t.Fatalf("expected error for missing character, got nil")
 	}
@@ -136,11 +134,10 @@ func TestFetchCharacterData_WithKills(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
 	oldAnalyze := analyzeKills
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
 	analyzeKills = true
@@ -148,10 +145,9 @@ func TestFetchCharacterData_WithKills(t *testing.T) {
 		zkillAPIURL = origZkill
 		ccpEsiURL = origCcp
 		analyzeKills = oldAnalyze
-		httpClient = origClient
 	}()
 
-	r := fetchCharacterData(httpClient, context.Background(), "Pilot")
+	r := fetchCharacterData(client, context.Background(), "Pilot")
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
