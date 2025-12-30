@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func fetchURL(client *http.Client, ctx context.Context, method, url string, params map[string]string, body io.Reader) ([]byte, error) {
+func fetchURL(ctx context.Context, client *http.Client, method, url string, params map[string]string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
@@ -42,19 +42,19 @@ func fetchURL(client *http.Client, ctx context.Context, method, url string, para
 	return respBody, nil
 }
 
-func ccpGet(client *http.Client, ctx context.Context, url string, params map[string]string) ([]byte, error) {
-	return fetchURL(client, ctx, http.MethodGet, ccpEsiURL+url, params, nil)
+func ccpGet(ctx context.Context, client *http.Client, url string, params map[string]string) ([]byte, error) {
+	return fetchURL(ctx, client, http.MethodGet, ccpEsiURL+url, params, nil)
 }
 
-func ccpPost(client *http.Client, ctx context.Context, url string, params map[string]string, body io.Reader) ([]byte, error) {
-	return fetchURL(client, ctx, http.MethodPost, ccpEsiURL+url, params, body)
+func ccpPost(ctx context.Context, client *http.Client, url string, params map[string]string, body io.Reader) ([]byte, error) {
+	return fetchURL(ctx, client, http.MethodPost, ccpEsiURL+url, params, body)
 }
 
-func zkillGet(client *http.Client, ctx context.Context, url string) ([]byte, error) {
-	return fetchURL(client, ctx, http.MethodGet, zkillAPIURL+url, nil, nil)
+func zkillGet(ctx context.Context, client *http.Client, url string) ([]byte, error) {
+	return fetchURL(ctx, client, http.MethodGet, zkillAPIURL+url, nil, nil)
 }
 
-func zkillCheck(client *http.Client, ctx context.Context) bool {
+func zkillCheck(ctx context.Context, client *http.Client) bool {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, zkillAPIURL, nil)
 	if err != nil {
 		return false

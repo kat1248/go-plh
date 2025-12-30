@@ -31,10 +31,10 @@ func (c characterData) String() string {
 	return c.Name
 }
 
-func fetchCharacterData(client *http.Client, ctx context.Context, name string) *characterResponse {
+func fetchCharacterData(ctx context.Context, client *http.Client, name string) *characterResponse {
 	cd := characterData{Name: name}
 
-	id, err := fetchCharacterID(client, ctx, name)
+	id, err := fetchCharacterID(ctx, client, name)
 	if err != nil {
 		return &characterResponse{&cd, fmt.Errorf("'%s' not found", name)}
 	}
@@ -48,11 +48,11 @@ func fetchCharacterData(client *http.Client, ctx context.Context, name string) *
 	ch := make(chan *characterResponse, 3)
 	var wg sync.WaitGroup
 
-	fetcher := func(f func(*http.Client, context.Context, int) *characterResponse, id int) {
+	fetcher := func(f func(context.Context, *http.Client, int) *characterResponse, id int) {
 		wg.Add(1)
-		go func(f func(*http.Client, context.Context, int) *characterResponse, id int) {
+		go func(f func(context.Context, *http.Client, int) *characterResponse, id int) {
 			defer wg.Done()
-			ch <- f(client, ctx, id)
+			ch <- f(ctx, client, id)
 		}(f, id)
 	}
 
@@ -123,10 +123,10 @@ func (c *characterData) handleMerges(ch chan *characterResponse) error {
 	return nil
 }
 
-func fetchCCPRecord(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchCCPRecord(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{}
 
-	ccpRec, err := fetchCharacterJSON(client, ctx, id)
+	ccpRec, err := fetchCharacterJSON(ctx, client, id)
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -146,10 +146,10 @@ func fetchCCPRecord(client *http.Client, ctx context.Context, id int) *character
 	return &characterResponse{&cd, nil}
 }
 
-func fetchZKillRecord(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchZKillRecord(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{ZkillUsed: false}
 
-	zkillRec, err := fetchZKillJSON(client, ctx, id)
+	zkillRec, err := fetchZKillJSON(ctx, client, id)
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -170,7 +170,7 @@ func fetchZKillRecord(client *http.Client, ctx context.Context, id int) *charact
 	return &characterResponse{&cd, nil}
 }
 
-func fetchCharacterJSON(client *http.Client, ctx context.Context, id int) (string, error) {
+func fetchCharacterJSON(ctx context.Context, client *http.Client, id int) (string, error) {
 	ids := fmt.Sprint(id)
 
 	rec, found := ccpCache.Get(ids)
@@ -178,7 +178,7 @@ func fetchCharacterJSON(client *http.Client, ctx context.Context, id int) (strin
 		return rec.(string), nil
 	}
 
-	jsonPayload, err := ccpGet(client, ctx, "characters/"+ids+"/", nil)
+	jsonPayload, err := ccpGet(ctx, client, "characters/"+ids+"/", nil)
 	if err != nil {
 		return "", err
 	}
@@ -187,7 +187,7 @@ func fetchCharacterJSON(client *http.Client, ctx context.Context, id int) (strin
 	return string(jsonPayload), nil
 }
 
-func fetchZKillJSON(client *http.Client, ctx context.Context, id int) (string, error) {
+func fetchZKillJSON(ctx context.Context, client *http.Client, id int) (string, error) {
 	ids := fmt.Sprint(id)
 
 	rec, found := zkillCache.Get(ids)
@@ -195,7 +195,7 @@ func fetchZKillJSON(client *http.Client, ctx context.Context, id int) (string, e
 		return rec.(string), nil
 	}
 
-	jsonPayload, err := zkillGet(client, ctx, "stats/characterID/"+ids+"/")
+	jsonPayload, err := zkillGet(ctx, client, "stats/characterID/"+ids+"/")
 	if err != nil {
 		return "", err
 	}
@@ -204,7 +204,7 @@ func fetchZKillJSON(client *http.Client, ctx context.Context, id int) (string, e
 	return string(jsonPayload), nil
 }
 
-func loadCharacterIds(client *http.Client, ctx context.Context, names []string) (bool, error) {
+func loadCharacterIds(ctx context.Context, client *http.Client, names []string) (bool, error) {
 	findNames := []string{}
 
 	for _, name := range names {
@@ -227,7 +227,7 @@ func loadCharacterIds(client *http.Client, ctx context.Context, names []string) 
 		return false, fmt.Errorf("error marshaling names")
 	}
 
-	jsonPayload, err := ccpPost(client, ctx,
+	jsonPayload, err := ccpPost(ctx, client,
 		"universe/ids/",
 		map[string]string{"datasource": "tranquility"},
 		bytes.NewBuffer(js))
@@ -252,7 +252,7 @@ func loadCharacterIds(client *http.Client, ctx context.Context, names []string) 
 	return true, nil
 }
 
-func fetchCharacterID(client *http.Client, ctx context.Context, name string) (int, error) {
+func fetchCharacterID(ctx context.Context, client *http.Client, name string) (int, error) {
 	id, found := ccpCache.Get(name)
 	if found {
 		return id.(int), nil
@@ -264,7 +264,7 @@ func fetchCharacterID(client *http.Client, ctx context.Context, name string) (in
 		return 0, fmt.Errorf("error marshaling %s", name)
 	}
 
-	jsonPayload, err := ccpPost(client, ctx,
+	jsonPayload, err := ccpPost(ctx, client,
 		"universe/ids/",
 		map[string]string{"datasource": "tranquility"},
 		bytes.NewBuffer(js))
@@ -290,7 +290,7 @@ func fetchCharacterID(client *http.Client, ctx context.Context, name string) (in
 	return cid, nil
 }
 
-func fetchCorporationName(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchCorporationName(ctx context.Context, client *http.Client, id int) *characterResponse {
 	ids := fmt.Sprint(id)
 
 	name, found := ccpCache.Get(ids)
@@ -300,7 +300,7 @@ func fetchCorporationName(client *http.Client, ctx context.Context, id int) *cha
 
 	cd := characterData{CorpName: ""}
 
-	jsonPayload, err := ccpGet(client, ctx, "corporations/"+ids+"/", nil)
+	jsonPayload, err := ccpGet(ctx, client, "corporations/"+ids+"/", nil)
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -321,7 +321,7 @@ func fetchCorporationName(client *http.Client, ctx context.Context, id int) *cha
 	return &characterResponse{&cd, nil}
 }
 
-func fetchAllianceName(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchAllianceName(ctx context.Context, client *http.Client, id int) *characterResponse {
 	if id == 0 {
 		return &characterResponse{&characterData{AllianceName: ""}, nil}
 	}
@@ -335,7 +335,7 @@ func fetchAllianceName(client *http.Client, ctx context.Context, id int) *charac
 
 	cd := characterData{AllianceName: ""}
 
-	jsonPayload, err := ccpGet(client, ctx, "alliances/"+ids+"/", map[string]string{"alliance_ids": ids})
+	jsonPayload, err := ccpGet(ctx, client, "alliances/"+ids+"/", map[string]string{"alliance_ids": ids})
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -356,12 +356,12 @@ func fetchAllianceName(client *http.Client, ctx context.Context, id int) *charac
 	return &characterResponse{&cd, nil}
 }
 
-func fetchCorpStartDate(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchCorpStartDate(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{CorpAge: ""}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := ccpGet(client, ctx, "characters/"+ids+"/corporationhistory", nil)
+	jsonPayload, err := ccpGet(ctx, client, "characters/"+ids+"/corporationhistory", nil)
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -385,7 +385,7 @@ func fetchCorpStartDate(client *http.Client, ctx context.Context, id int) *chara
 	return &characterResponse{&cd, nil}
 }
 
-func fetchItemName(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchItemName(ctx context.Context, client *http.Client, id int) *characterResponse {
 	ids := fmt.Sprint(id)
 
 	name, found := ccpCache.Get("ship:" + ids)
@@ -401,7 +401,7 @@ func fetchItemName(client *http.Client, ctx context.Context, id int) *characterR
 		return &characterResponse{&cd, err}
 	}
 
-	jsonPayload, err := ccpPost(client, ctx,
+	jsonPayload, err := ccpPost(ctx, client,
 		"universe/names/",
 		map[string]string{"datasource": "tranquility"},
 		bytes.NewBuffer(js))
@@ -431,7 +431,7 @@ func fetchItemName(client *http.Client, ctx context.Context, id int) *characterR
 	return &characterResponse{&cd, nil}
 }
 
-func fetchCorpDanger(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchCorpDanger(ctx context.Context, client *http.Client, id int) *characterResponse {
 	ids := fmt.Sprint(id)
 
 	danger, found := zkillCache.Get(ids)
@@ -441,7 +441,7 @@ func fetchCorpDanger(client *http.Client, ctx context.Context, id int) *characte
 
 	cd := characterData{CorpDanger: 0}
 
-	jsonPayload, err := zkillGet(client, ctx, "stats/corporationID/"+ids+"/")
+	jsonPayload, err := zkillGet(ctx, client, "stats/corporationID/"+ids+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}

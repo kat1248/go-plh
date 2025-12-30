@@ -51,7 +51,7 @@ type inflight struct {
 	err error
 }
 
-func ccpGetKillMail(client *http.Client, ctx context.Context, id int, hash string) *killMail {
+func ccpGetKillMail(ctx context.Context, client *http.Client, id int, hash string) *killMail {
 	// check cache first
 	key := fmt.Sprintf("%d:%s", id, hash)
 	if rec, found := killmailCache.Get(key); found {
@@ -80,7 +80,7 @@ func ccpGetKillMail(client *http.Client, ctx context.Context, id int, hash strin
 	// leader fetches the killmail
 	km := killMail{}
 	ids := fmt.Sprint(id)
-	jsonPayload, err := ccpGet(client, ctx, "killmails/"+ids+"/"+hash+"/", nil)
+	jsonPayload, err := ccpGet(ctx, client, "killmails/"+ids+"/"+hash+"/", nil)
 	if err == nil {
 		if err := json.Unmarshal(jsonPayload, &km); err != nil {
 			err = err
@@ -102,12 +102,12 @@ func ccpGetKillMail(client *http.Client, ctx context.Context, id int, hash strin
 	return &km
 }
 
-func fetchLastKillActivity(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchLastKillActivity(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{LastKill: ""}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet(client, ctx, "characterID/"+ids+"/")
+	jsonPayload, err := zkillGet(ctx, client, "characterID/"+ids+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -122,7 +122,7 @@ func fetchLastKillActivity(client *http.Client, ctx context.Context, id int) *ch
 		return &characterResponse{&cd, fmt.Errorf("no kills for id %s", ids)}
 	}
 
-	km := ccpGetKillMail(client, ctx, entries[0].ID, entries[0].Info.Hash)
+	km := ccpGetKillMail(ctx, client, entries[0].ID, entries[0].Info.Hash)
 
 	when := getDate(km.Time)
 	who := km.Victim.CharacterID
@@ -142,14 +142,14 @@ func fetchLastKillActivity(client *http.Client, ctx context.Context, id int) *ch
 	return &characterResponse{&cd, nil}
 }
 
-func fetchKillHistory(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchKillHistory(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{
 		RecentExplorerTotal: 0, RecentKillTotal: 0, LastKillTime: "",
 		FavoriteShipID: 0, FavoriteShipCount: 0}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet(client, ctx, "kills/characterID/"+ids+"/")
+	jsonPayload, err := zkillGet(ctx, client, "kills/characterID/"+ids+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -183,7 +183,7 @@ func fetchKillHistory(client *http.Client, ctx context.Context, id int) *charact
 		go func(entry zKillMail, last bool) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			km := ccpGetKillMail(client, ctx, entry.ID, entry.Info.Hash)
+			km := ccpGetKillMail(ctx, client, entry.ID, entry.Info.Hash)
 			if km == nil {
 				return
 			}
@@ -229,12 +229,12 @@ func fetchKillHistory(client *http.Client, ctx context.Context, id int) *charact
 	return &characterResponse{&cd, nil}
 }
 
-func fetchRecentKillHistory(client *http.Client, ctx context.Context, id int) *characterResponse {
+func fetchRecentKillHistory(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{KillsLastWeek: 0}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet(client, ctx, "kills/characterID/"+ids+"/pastSeconds/"+fmt.Sprint(secondsInWeek)+"/")
+	jsonPayload, err := zkillGet(ctx, client, "kills/characterID/"+ids+"/pastSeconds/"+fmt.Sprint(secondsInWeek)+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
