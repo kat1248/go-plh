@@ -287,7 +287,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	}
 	flusher.Flush()
 
-	if ok, err := loadCharacterIds(ctx, names); !ok {
+	if ok, err := loadCharacterIds(httpClient, ctx, names); !ok {
 		log.WithError(err).Warn("failed to preload character IDs")
 	}
 
@@ -303,7 +303,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 			for name := range jobs {
 				select {
-				case results <- fetchCharacterData(ctx, name):
+				case results <- fetchCharacterData(httpClient, ctx, name):
 				case <-ctx.Done():
 					return
 				}
