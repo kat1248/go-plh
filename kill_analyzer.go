@@ -51,7 +51,11 @@ type inflight struct {
 	err error
 }
 
-func ccpGetKillMail(client *http.Client, ctx context.Context, id int, hash string) *killMail {
+// ccpGetKillMail fetches a kill mail by id and hash using in-memory caching and singleflight deduplication.
+// On success the fetched killMail is cached; the function returns a pointer to the killMail.
+// If retrieval or unmarshalling fails, it returns a pointer to a zero-valued killMail (the error is stored internally).
+// ctx is used for the backend request and client is the HTTP client used to perform the fetch.
+func ccpGetKillMail(ctx context.Context, client *http.Client, id int, hash string) *killMail {
 	// check cache first
 	key := fmt.Sprintf("%d:%s", id, hash)
 	if rec, found := killmailCache.Get(key); found {
@@ -80,7 +84,7 @@ func ccpGetKillMail(client *http.Client, ctx context.Context, id int, hash strin
 	// leader fetches the killmail
 	km := killMail{}
 	ids := fmt.Sprint(id)
-	jsonPayload, err := ccpGet(client, ctx, "killmails/"+ids+"/"+hash+"/", nil)
+	jsonPayload, err := ccpGet(ctx, client, "killmails/"+ids+"/"+hash+"/", nil)
 	if err == nil {
 		if err := json.Unmarshal(jsonPayload, &km); err != nil {
 			err = err
@@ -102,12 +106,14 @@ func ccpGetKillMail(client *http.Client, ctx context.Context, id int, hash strin
 	return &km
 }
 
-func fetchLastKillActivity(client *http.Client, ctx context.Context, id int) *characterResponse {
+// fetchLastKillActivity fetches the most recent killmail for the given character ID and populates a characterResponse whose Data.LastKill is set to "<date> (loss|struct|kill)".
+// The returned characterResponse contains an error if the upstream fetch or JSON decoding fails, or if no kills are found for the ID.
+func fetchLastKillActivity(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{LastKill: ""}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet(client, ctx, "characterID/"+ids+"/")
+	jsonPayload, err := zkillGet(ctx, client, "characterID/"+ids+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -122,7 +128,7 @@ func fetchLastKillActivity(client *http.Client, ctx context.Context, id int) *ch
 		return &characterResponse{&cd, fmt.Errorf("no kills for id %s", ids)}
 	}
 
-	km := ccpGetKillMail(client, ctx, entries[0].ID, entries[0].Info.Hash)
+	km := ccpGetKillMail(ctx, client, entries[0].ID, entries[0].Info.Hash)
 
 	when := getDate(km.Time)
 	who := km.Victim.CharacterID
@@ -142,14 +148,19 @@ func fetchLastKillActivity(client *http.Client, ctx context.Context, id int) *ch
 	return &characterResponse{&cd, nil}
 }
 
-func fetchKillHistory(client *http.Client, ctx context.Context, id int) *characterResponse {
+// fetchKillHistory retrieves and analyzes a character's kill history from zKillboard.
+// It populates RecentKillTotal, RecentExplorerTotal, LastKillTime and, if enabled, FavoriteShipID
+// and FavoriteShipCount in the returned characterData. The function limits concurrent remote
+// killmail fetches to avoid spikes and returns a characterResponse containing the populated
+// data on success or partial data with an error if fetching or parsing fails.
+func fetchKillHistory(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{
 		RecentExplorerTotal: 0, RecentKillTotal: 0, LastKillTime: "",
 		FavoriteShipID: 0, FavoriteShipCount: 0}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet(client, ctx, "kills/characterID/"+ids+"/")
+	jsonPayload, err := zkillGet(ctx, client, "kills/characterID/"+ids+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}
@@ -183,7 +194,7 @@ func fetchKillHistory(client *http.Client, ctx context.Context, id int) *charact
 		go func(entry zKillMail, last bool) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			km := ccpGetKillMail(client, ctx, entry.ID, entry.Info.Hash)
+			km := ccpGetKillMail(ctx, client, entry.ID, entry.Info.Hash)
 			if km == nil {
 				return
 			}
@@ -229,12 +240,19 @@ func fetchKillHistory(client *http.Client, ctx context.Context, id int) *charact
 	return &characterResponse{&cd, nil}
 }
 
-func fetchRecentKillHistory(client *http.Client, ctx context.Context, id int) *characterResponse {
+// fetchRecentKillHistory counts a character's kills in the past week.
+//
+// It queries zKillboard for kills for the given character ID in the last week and sets
+// characterData.KillsLastWeek to the number of returned kill entries. The function
+// attempts to stream the JSON array to count elements without allocating the full slice.
+// It returns a characterResponse containing the populated characterData and any error
+// encountered during the request or JSON parsing.
+func fetchRecentKillHistory(ctx context.Context, client *http.Client, id int) *characterResponse {
 	cd := characterData{KillsLastWeek: 0}
 
 	ids := fmt.Sprint(id)
 
-	jsonPayload, err := zkillGet(client, ctx, "kills/characterID/"+ids+"/pastSeconds/"+fmt.Sprint(secondsInWeek)+"/")
+	jsonPayload, err := zkillGet(ctx, client, "kills/characterID/"+ids+"/pastSeconds/"+fmt.Sprint(secondsInWeek)+"/")
 	if err != nil {
 		return &characterResponse{&cd, err}
 	}

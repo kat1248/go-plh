@@ -34,7 +34,7 @@ func TestFetchRecentKillHistory_Counts(t *testing.T) {
 	zkillAPIURL = s.URL + "/"
 	defer func() { zkillAPIURL = origZkill }()
 
-	r := fetchRecentKillHistory(client, context.Background(), 123)
+	r := fetchRecentKillHistory(context.Background(), client, 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
@@ -81,7 +81,7 @@ func TestFetchKillHistory_ExplorerAndCounts(t *testing.T) {
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
 	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
-	r := fetchKillHistory(client, context.Background(), 123)
+	r := fetchKillHistory(context.Background(), client, 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
@@ -115,7 +115,7 @@ func TestFetchRecentKillHistory_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	r := fetchRecentKillHistory(client, ctx, 123)
+	r := fetchRecentKillHistory(ctx, client, 123)
 	if r.err == nil {
 		t.Fatalf("expected error due to context cancel, got nil")
 	}
@@ -146,7 +146,7 @@ func BenchmarkFetchKillHistory_Small(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r := fetchKillHistory(client, context.Background(), 123)
+		r := fetchKillHistory(context.Background(), client, 123)
 		if r.err != nil {
 			b.Fatalf("unexpected err: %v", r.err)
 		}
@@ -167,7 +167,7 @@ func TestFetchKillHistory_ZkillError(t *testing.T) {
 	zkillAPIURL = s.URL + "/"
 	client := &http.Client{}
 	defer func() { zkillAPIURL = orig }()
-	r := fetchKillHistory(client, context.Background(), 123)
+	r := fetchKillHistory(context.Background(), client, 123)
 	if r.err == nil {
 		t.Fatalf("expected error when zkill returns 500, got nil")
 	}
@@ -193,7 +193,7 @@ func TestFetchKillHistory_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	r := fetchKillHistory(client, ctx, 123)
+	r := fetchKillHistory(ctx, client, 123)
 	if r.err == nil {
 		t.Fatalf("expected error due to context cancel, got nil")
 	}
@@ -227,12 +227,12 @@ func TestKillmailCache_Basic(t *testing.T) {
 	// reset cache
 	killmailCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
 
-	r := fetchKillHistory(client, context.Background(), 123)
+	r := fetchKillHistory(context.Background(), client, 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
 
-	r = fetchKillHistory(client, context.Background(), 123)
+	r = fetchKillHistory(context.Background(), client, 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err on second call: %v", r.err)
 	}
@@ -270,7 +270,7 @@ func TestKillmailCache_Expiration(t *testing.T) {
 	// short TTL cache for test
 	killmailCache = cache.New[string, any](50*time.Millisecond, 10*time.Millisecond)
 
-	r := fetchKillHistory(client, context.Background(), 123)
+	r := fetchKillHistory(context.Background(), client, 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
@@ -278,7 +278,7 @@ func TestKillmailCache_Expiration(t *testing.T) {
 	// wait for TTL to expire
 	time.Sleep(100 * time.Millisecond)
 
-	r = fetchKillHistory(client, context.Background(), 123)
+	r = fetchKillHistory(context.Background(), client, 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err on second call: %v", r.err)
 	}
@@ -330,7 +330,7 @@ func TestKillmailSingleflight_Deduplication(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			km := ccpGetKillMail(client, context.Background(), 1, "h1")
+			km := ccpGetKillMail(context.Background(), client, 1, "h1")
 			mu.Lock()
 			results = append(results, km)
 			mu.Unlock()

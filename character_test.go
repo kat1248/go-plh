@@ -53,7 +53,7 @@ func TestFetchCharacterData_Basic(t *testing.T) {
 	ccpEsiURL = s.URL + "/"
 	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
 
-	r := fetchCharacterData(client, context.Background(), "Mynxee")
+	r := fetchCharacterData(context.Background(), client, "Mynxee")
 	if r.err != nil {
 		t.Fatalf("unexpected error: %v", r.err)
 	}
@@ -90,7 +90,7 @@ func TestFetchCharacterData_NotFound(t *testing.T) {
 	ccpEsiURL = s.URL + "/"
 	defer func() { ccpEsiURL = origCcp }()
 
-	r := fetchCharacterData(client, context.Background(), "NoSuch")
+	r := fetchCharacterData(context.Background(), client, "NoSuch")
 	if r.err == nil {
 		t.Fatalf("expected error for missing character, got nil")
 	}
@@ -147,7 +147,7 @@ func TestFetchCharacterData_WithKills(t *testing.T) {
 		analyzeKills = oldAnalyze
 	}()
 
-	r := fetchCharacterData(client, context.Background(), "Pilot")
+	r := fetchCharacterData(context.Background(), client, "Pilot")
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
@@ -224,7 +224,7 @@ func TestFetchCharacterID_TableDriven(t *testing.T) {
 			ccpEsiURL = s.URL + "/"
 			defer func() { ccpEsiURL = orig }()
 
-			id, err := fetchCharacterID(client, context.Background(), "whatever")
+			id, err := fetchCharacterID(context.Background(), client, "whatever")
 			if tc.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
@@ -274,7 +274,7 @@ func TestFetchCharacterData_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	r := fetchCharacterData(client, ctx, "Slow")
+	r := fetchCharacterData(ctx, client, "Slow")
 	if r.err == nil {
 		t.Fatalf("expected timeout error, got nil")
 	}

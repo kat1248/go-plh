@@ -231,6 +231,19 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, `{"alive": true}`)
 }
 
+// serveData streams character data as NDJSON for the "characters" query parameter.
+// 
+// It reads newline-separated names from the "characters" form value, trims and
+// deduplicates entries, ignores names shorter than 3 characters, and limits the
+// list to maximumNames. The response starts with a `{"_meta":"start","total":<n>}`
+// object, then streams one JSON object per character as they become available,
+// and finishes with a `{"_meta":"done","sent":<s>,"total":<n>}` object.
+// 
+// The handler attempts to preload character IDs, runs a worker pool to fetch
+// character data concurrently, and flushes each encoded object to the client as
+// it is written. If the ResponseWriter does not support streaming, it returns a
+// 500 error. Errors fetching individual characters are logged and skipped; a
+// client disconnect aborts the stream.
 func serveData(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	ctx := r.Context()
@@ -287,7 +300,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	}
 	flusher.Flush()
 
-	if ok, err := loadCharacterIds(httpClient, ctx, names); !ok {
+	if ok, err := loadCharacterIds(ctx, httpClient, names); !ok {
 		log.WithError(err).Warn("failed to preload character IDs")
 	}
 
@@ -303,7 +316,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 			for name := range jobs {
 				select {
-				case results <- fetchCharacterData(httpClient, ctx, name):
+				case results <- fetchCharacterData(ctx, httpClient, name):
 				case <-ctx.Done():
 					return
 				}
