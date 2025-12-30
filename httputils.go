@@ -54,8 +54,8 @@ func zkillGet(client *http.Client, ctx context.Context, url string) ([]byte, err
 	return fetchURL(client, ctx, http.MethodGet, zkillAPIURL+url, nil, nil)
 }
 
-func zkillCheck(client *http.Client) bool {
-	req, err := http.NewRequest(http.MethodGet, zkillAPIURL, nil)
+func zkillCheck(client *http.Client, ctx context.Context) bool {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, zkillAPIURL, nil)
 	if err != nil {
 		return false
 	}
@@ -71,6 +71,8 @@ func zkillCheck(client *http.Client) bool {
 	if err != nil {
 		return false
 	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusServiceUnavailable {
 		return false
