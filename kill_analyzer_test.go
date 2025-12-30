@@ -29,13 +29,12 @@ func TestFetchRecentKillHistory_Counts(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; httpClient = origClient }()
+	defer func() { zkillAPIURL = origZkill }()
 
-	r := fetchRecentKillHistory(context.Background(), 123)
+	r := fetchRecentKillHistory(client, context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
@@ -76,14 +75,13 @@ func TestFetchKillHistory_ExplorerAndCounts(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
-	r := fetchKillHistory(context.Background(), 123)
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
+	r := fetchKillHistory(client, context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
@@ -109,16 +107,15 @@ func TestFetchRecentKillHistory_ContextCancelled(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; httpClient = origClient }()
+	defer func() { zkillAPIURL = origZkill }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	r := fetchRecentKillHistory(ctx, 123)
+	r := fetchRecentKillHistory(client, ctx, 123)
 	if r.err == nil {
 		t.Fatalf("expected error due to context cancel, got nil")
 	}
@@ -140,17 +137,16 @@ func BenchmarkFetchKillHistory_Small(b *testing.B) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r := fetchKillHistory(context.Background(), 123)
+		r := fetchKillHistory(client, context.Background(), 123)
 		if r.err != nil {
 			b.Fatalf("unexpected err: %v", r.err)
 		}
@@ -167,13 +163,11 @@ func TestFetchKillHistory_ZkillError(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	orig := zkillAPIURL
 	zkillAPIURL = s.URL + "/"
-	httpClient = &http.Client{}
-	defer func() { zkillAPIURL = orig; httpClient = origClient }()
-
-	r := fetchKillHistory(context.Background(), 123)
+	client := &http.Client{}
+	defer func() { zkillAPIURL = orig }()
+	r := fetchKillHistory(client, context.Background(), 123)
 	if r.err == nil {
 		t.Fatalf("expected error when zkill returns 500, got nil")
 	}
@@ -191,16 +185,15 @@ func TestFetchKillHistory_ContextCancelled(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	orig := zkillAPIURL
 	zkillAPIURL = s.URL + "/"
-	httpClient = &http.Client{}
-	defer func() { zkillAPIURL = orig; httpClient = origClient }()
+	client := &http.Client{}
+	defer func() { zkillAPIURL = orig }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	r := fetchKillHistory(ctx, 123)
+	r := fetchKillHistory(client, ctx, 123)
 	if r.err == nil {
 		t.Fatalf("expected error due to context cancel, got nil")
 	}
@@ -224,23 +217,22 @@ func TestKillmailCache_Basic(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
 
 	// reset cache
 	killmailCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
 
-	r := fetchKillHistory(context.Background(), 123)
+	r := fetchKillHistory(client, context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
 
-	r = fetchKillHistory(context.Background(), 123)
+	r = fetchKillHistory(client, context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err on second call: %v", r.err)
 	}
@@ -268,18 +260,17 @@ func TestKillmailCache_Expiration(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
 
 	// short TTL cache for test
 	killmailCache = cache.New[string, any](50*time.Millisecond, 10*time.Millisecond)
 
-	r := fetchKillHistory(context.Background(), 123)
+	r := fetchKillHistory(client, context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
@@ -287,7 +278,7 @@ func TestKillmailCache_Expiration(t *testing.T) {
 	// wait for TTL to expire
 	time.Sleep(100 * time.Millisecond)
 
-	r = fetchKillHistory(context.Background(), 123)
+	r = fetchKillHistory(client, context.Background(), 123)
 	if r.err != nil {
 		t.Fatalf("unexpected err on second call: %v", r.err)
 	}
@@ -317,13 +308,12 @@ func TestKillmailSingleflight_Deduplication(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
 
 	// reset cache and singleflight
 	killmailCache = cache.New[string, any](1*time.Hour, 10*time.Minute)
@@ -340,7 +330,7 @@ func TestKillmailSingleflight_Deduplication(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			km := ccpGetKillMail(context.Background(), 1, "h1")
+			km := ccpGetKillMail(client, context.Background(), 1, "h1")
 			mu.Lock()
 			results = append(results, km)
 			mu.Unlock()

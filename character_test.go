@@ -54,7 +54,7 @@ func TestFetchCharacterData_Basic(t *testing.T) {
 	ccpEsiURL = s.URL + "/"
 	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
 
-	r := fetchCharacterData(context.Background(), "Mynxee")
+	r := fetchCharacterData(httpClient, context.Background(), "Mynxee")
 	if r.err != nil {
 		t.Fatalf("unexpected error: %v", r.err)
 	}
@@ -92,7 +92,7 @@ func TestFetchCharacterData_NotFound(t *testing.T) {
 	ccpEsiURL = s.URL + "/"
 	defer func() { ccpEsiURL = origCcp; httpClient = origClient }()
 
-	r := fetchCharacterData(context.Background(), "NoSuch")
+	r := fetchCharacterData(httpClient, context.Background(), "NoSuch")
 	if r.err == nil {
 		t.Fatalf("expected error for missing character, got nil")
 	}
@@ -151,7 +151,7 @@ func TestFetchCharacterData_WithKills(t *testing.T) {
 		httpClient = origClient
 	}()
 
-	r := fetchCharacterData(context.Background(), "Pilot")
+	r := fetchCharacterData(httpClient, context.Background(), "Pilot")
 	if r.err != nil {
 		t.Fatalf("unexpected err: %v", r.err)
 	}
@@ -223,13 +223,12 @@ func TestFetchCharacterID_TableDriven(t *testing.T) {
 			s := httptest.NewServer(tc.handler)
 			defer s.Close()
 
-			origClient := httpClient
 			orig := ccpEsiURL
-			httpClient = &http.Client{}
+			client := &http.Client{}
 			ccpEsiURL = s.URL + "/"
-			defer func() { ccpEsiURL = orig; httpClient = origClient }()
+			defer func() { ccpEsiURL = orig }()
 
-			id, err := fetchCharacterID(context.Background(), "whatever")
+			id, err := fetchCharacterID(client, context.Background(), "whatever")
 			if tc.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
@@ -269,18 +268,17 @@ func TestFetchCharacterData_Timeout(t *testing.T) {
 	}))
 	defer s.Close()
 
-	origClient := httpClient
 	origZkill := zkillAPIURL
 	origCcp := ccpEsiURL
-	httpClient = &http.Client{}
+	client := &http.Client{}
 	zkillAPIURL = s.URL + "/"
 	ccpEsiURL = s.URL + "/"
-	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp; httpClient = origClient }()
+	defer func() { zkillAPIURL = origZkill; ccpEsiURL = origCcp }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	r := fetchCharacterData(ctx, "Slow")
+	r := fetchCharacterData(client, ctx, "Slow")
 	if r.err == nil {
 		t.Fatalf("expected timeout error, got nil")
 	}

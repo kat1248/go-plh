@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func fetchURL(ctx context.Context, method, url string, params map[string]string, body io.Reader) ([]byte, error) {
+func fetchURL(client *http.Client, ctx context.Context, method, url string, params map[string]string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func fetchURL(ctx context.Context, method, url string, params map[string]string,
 		req.URL.RawQuery = q.Encode()
 	}
 
-	resp, err := httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -42,16 +42,16 @@ func fetchURL(ctx context.Context, method, url string, params map[string]string,
 	return respBody, nil
 }
 
-func ccpGet(ctx context.Context, url string, params map[string]string) ([]byte, error) {
-	return fetchURL(ctx, http.MethodGet, ccpEsiURL+url, params, nil)
+func ccpGet(client *http.Client, ctx context.Context, url string, params map[string]string) ([]byte, error) {
+	return fetchURL(client, ctx, http.MethodGet, ccpEsiURL+url, params, nil)
 }
 
-func ccpPost(ctx context.Context, url string, params map[string]string, body io.Reader) ([]byte, error) {
-	return fetchURL(ctx, http.MethodPost, ccpEsiURL+url, params, body)
+func ccpPost(client *http.Client, ctx context.Context, url string, params map[string]string, body io.Reader) ([]byte, error) {
+	return fetchURL(client, ctx, http.MethodPost, ccpEsiURL+url, params, body)
 }
 
-func zkillGet(ctx context.Context, url string) ([]byte, error) {
-	return fetchURL(ctx, http.MethodGet, zkillAPIURL+url, nil, nil)
+func zkillGet(client *http.Client, ctx context.Context, url string) ([]byte, error) {
+	return fetchURL(client, ctx, http.MethodGet, zkillAPIURL+url, nil, nil)
 }
 
 // func zkillCheck() bool {
