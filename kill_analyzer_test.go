@@ -326,15 +326,13 @@ func TestKillmailSingleflight_Deduplication(t *testing.T) {
 	n := 10
 	results := make([]*killMail, 0, n)
 	var mu sync.Mutex
-	for i := 0; i < n; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range n {
+		wg.Go(func() {
 			km := ccpGetKillMail(context.Background(), client, 1, "h1")
 			mu.Lock()
 			results = append(results, km)
 			mu.Unlock()
-		}()
+		})
 	}
 	wg.Wait()
 

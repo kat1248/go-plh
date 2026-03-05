@@ -1,11 +1,10 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/constraints"
 )
 
 const (
@@ -51,7 +50,7 @@ func getDate(dt string) string {
 	return strings.Split(dt, "T")[0]
 }
 
-func min[T constraints.Ordered](a, b T) T {
+func min[T cmp.Ordered](a, b T) T {
 	if a < b {
 		return a
 	}

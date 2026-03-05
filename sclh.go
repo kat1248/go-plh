@@ -232,13 +232,13 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // serveData streams character data as NDJSON for the "characters" query parameter.
-// 
+//
 // It reads newline-separated names from the "characters" form value, trims and
 // deduplicates entries, ignores names shorter than 3 characters, and limits the
 // list to maximumNames. The response starts with a `{"_meta":"start","total":<n>}`
 // object, then streams one JSON object per character as they become available,
 // and finishes with a `{"_meta":"done","sent":<s>,"total":<n>}` object.
-// 
+//
 // The handler attempts to preload character IDs, runs a worker pool to fetch
 // character data concurrently, and flushes each encoded object to the client as
 // it is written. If the ResponseWriter does not support streaming, it returns a
@@ -310,10 +310,8 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 
 	// workers
-	for i := 0; i < maxWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range maxWorkers {
+		wg.Go(func() {
 			for name := range jobs {
 				select {
 				case results <- fetchCharacterData(ctx, httpClient, name):
@@ -321,7 +319,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			}
-		}()
+		})
 	}
 
 	// feed jobs
