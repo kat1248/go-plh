@@ -24,8 +24,8 @@ import (
 
 	"github.com/antihax/goesi"
 	json "github.com/goccy/go-json"
+	"github.com/gregjones/httpcache"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/sandrolain/httpcache"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,7 +58,7 @@ func setupHTTPClient() {
 	retryClient.RetryMax = 3
 	retryClient.HTTPClient.Timeout = 10 * time.Second
 
-	cacheTransport := httpcache.NewTransport(httpcache.NewMemoryCache())
+	cacheTransport := httpcache.NewMemoryCacheTransport()
 	cacheTransport.Transport = http.DefaultTransport
 
 	retryClient.HTTPClient.Transport = cacheTransport
