@@ -44,15 +44,3 @@ func TestGetDate(t *testing.T) {
 		t.Fatalf("getDate(%q) = %q; want %q", in, d, "2020-02-03")
 	}
 }
-
-func TestMin_Generic(t *testing.T) {
-	if got := min(3, 5); got != 3 {
-		t.Fatalf("min(3,5) = %v; want 3", got)
-	}
-	if got := min(2.5, 1.25); got != 1.25 {
-		t.Fatalf("min(2.5,1.25) = %v; want 1.25", got)
-	}
-	if got := min("b", "a"); got != "a" {
-		t.Fatalf("min(%q,%q) = %q; want %q", "b", "a", got, "a")
-	}
-}

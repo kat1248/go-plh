@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cmp"
 	"fmt"
 	"strings"
 	"time"
@@ -48,11 +47,4 @@ func secondsSince(dt string) float64 {
 
 func getDate(dt string) string {
 	return strings.Split(dt, "T")[0]
-}
-
-func min[T cmp.Ordered](a, b T) T {
-	if a < b {
-		return a
-	}
-	return b
 }
