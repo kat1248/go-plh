@@ -51,6 +51,13 @@
     <br /><br />
     <form id="names-form" action="" method="POST">
         <!-- Name input removed — paste names anywhere on the page to submit -->
+        <div style="color: black; margin-bottom: 8px;">
+            <label for="name-list" style="display: block; margin-bottom: 4px;">Character Names (one per line)</label>
+            <textarea id="name-list" name="names" rows="6" cols="40"
+                placeholder="Paste character names here, one per line..."
+                style="display: block; resize: vertical;"></textarea>
+            <button type="button" onclick="sendNames()" style="margin-top: 4px;">Submit</button>
+        </div>
         <div style="color: black">
             <input type="checkbox" id="group-corp" class="group-button" value="group" />
             <label for="group-corp">Group by Corporation</label>
