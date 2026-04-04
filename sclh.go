@@ -329,14 +329,14 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 
 	// feed jobs
 	go func() {
+		defer close(jobs)
 		for _, name := range names {
 			select {
 			case jobs <- name:
 			case <-ctx.Done():
-				break
+				return
 			}
 		}
-		close(jobs)
 	}()
 
 	// close results

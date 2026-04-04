@@ -104,26 +104,3 @@ func ccpPost(ctx context.Context, client *http.Client, url string, params map[st
 func zkillGet(ctx context.Context, client *http.Client, url string) ([]byte, error) {
 	return fetchURL(ctx, client, http.MethodGet, zkillAPIURL+url, nil, nil)
 }
-
-// zkillCheck verifies availability of the zKillboard API endpoint.
-// It issues a GET request to zkillAPIURL using the provided context and HTTP client with the User-Agent header set; it returns false if request creation or execution fails or if the server responds with HTTP 503 Service Unavailable, and returns true otherwise.
-func zkillCheck(ctx context.Context, client *http.Client) bool {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, zkillAPIURL, nil)
-	if err != nil {
-		return false
-	}
-	req.Header.Add("User-Agent", userAgent)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusServiceUnavailable {
-		return false
-	}
-
-	return true
-}

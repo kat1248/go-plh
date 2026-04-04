@@ -23,4 +23,4 @@ require (
 	golang.org/x/text v0.32.0 // indirect
 )
 
-go 1.25.3
+go 1.26.1

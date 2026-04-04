@@ -86,8 +86,8 @@ func ccpGetKillMail(ctx context.Context, client *http.Client, id int, hash strin
 	ids := fmt.Sprint(id)
 	jsonPayload, err := ccpGet(ctx, client, "killmails/"+ids+"/"+hash+"/", nil)
 	if err == nil {
-		if err := json.Unmarshal(jsonPayload, &km); err != nil {
-			err = err
+		if jsonErr := json.Unmarshal(jsonPayload, &km); jsonErr != nil {
+			err = jsonErr
 		}
 	}
 

@@ -46,13 +46,13 @@ func TestGetDate(t *testing.T) {
 }
 
 func TestMin_Generic(t *testing.T) {
-	if got := min[int](3, 5); got != 3 {
+	if got := min(3, 5); got != 3 {
 		t.Fatalf("min(3,5) = %v; want 3", got)
 	}
-	if got := min[float64](2.5, 1.25); got != 1.25 {
+	if got := min(2.5, 1.25); got != 1.25 {
 		t.Fatalf("min(2.5,1.25) = %v; want 1.25", got)
 	}
-	if got := min[string]("b", "a"); got != "a" {
+	if got := min("b", "a"); got != "a" {
 		t.Fatalf("min(%q,%q) = %q; want %q", "b", "a", got, "a")
 	}
 }
