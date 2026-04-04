@@ -11,7 +11,12 @@ import (
 
 	"dario.cat/mergo"
 	json "github.com/goccy/go-json"
+	log "github.com/sirupsen/logrus"
 	cache "zgo.at/zcache/v2"
+)
+
+const (
+	npcCorpThreshold = 2000000
 )
 
 var (
@@ -32,7 +37,7 @@ func (c characterData) String() string {
 }
 
 // fetchCharacterData orchestrates retrieval and aggregation of all available data for a character name.
-// 
+//
 // It resolves the character ID, concurrently fetches CCP record, zKillboard record (when available),
 // corporation start date, and additional dependent data (corporation danger, alliance/corporation names,
 // last kill activity, kill histories, and favorite ship name) as applicable, then merges results into a
@@ -58,10 +63,10 @@ func fetchCharacterData(ctx context.Context, client *http.Client, name string) *
 
 	fetcher := func(f func(context.Context, *http.Client, int) *characterResponse, id int) {
 		wg.Add(1)
-		go func(f func(context.Context, *http.Client, int) *characterResponse, id int) {
+		go func() {
 			defer wg.Done()
 			ch <- f(ctx, client, id)
-		}(f, id)
+		}()
 	}
 
 	fetcher(fetchCCPRecord, cd.CharacterID)
@@ -153,7 +158,7 @@ func fetchCCPRecord(ctx context.Context, client *http.Client, id int) *character
 	cd.Age = secondsToTimeString(secondsSince(cr.Birthday))
 	cd.CorpID = cr.CorpID
 	cd.Security = cr.Security
-	cd.IsNpcCorp = cd.CorpID < 2000000
+	cd.IsNpcCorp = cd.CorpID < npcCorpThreshold
 	cd.AllianceID = cr.AllianceID
 
 	return &characterResponse{&cd, nil}
@@ -309,7 +314,7 @@ func fetchCharacterID(ctx context.Context, client *http.Client, name string) (in
 	var entries characterList
 
 	if err := json.Unmarshal(jsonPayload, &entries); err != nil {
-		fmt.Println("error = ", err)
+		log.WithError(err).Error("error unmarshaling character IDs")
 		return 0, err
 	}
 
@@ -317,8 +322,7 @@ func fetchCharacterID(ctx context.Context, client *http.Client, name string) (in
 		return 0, fmt.Errorf("not found %s", name)
 	}
 
-	cid := 0
-	cid = entries.Characters[0].ID
+	cid := entries.Characters[0].ID
 
 	ccpCache.SetWithExpire(name, cid, cache.NoExpiration)
 	return cid, nil

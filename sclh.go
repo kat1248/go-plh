@@ -30,9 +30,10 @@ import (
 )
 
 const (
-	maximumNames = 100
-	userAgent    = "https://sclh.ddns.net Maintainer: kat1248@gmail.com"
-	maxWorkers   = 10
+	maximumNames      = 100
+	userAgent         = "https://sclh.ddns.net Maintainer: kat1248@gmail.com"
+	maxWorkers        = 10
+	minimumNameLength = 3
 )
 
 var (
@@ -226,8 +227,8 @@ func faviconHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, `{"alive": true}`)
 }
 
@@ -255,7 +256,7 @@ func serveData(w http.ResponseWriter, r *http.Request) {
 
 	for _, n := range raw {
 		n = strings.TrimSpace(n)
-		if len(n) < 3 {
+		if len(n) < minimumNameLength {
 			continue
 		}
 		if _, ok := seen[n]; ok {
@@ -375,10 +376,8 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	// Return a 404 if the template doesn't exist
 	info, err := os.Stat(fp)
 	if err != nil {
-		if os.IsNotExist(err) {
-			http.NotFound(w, r)
-			return
-		}
+		http.NotFound(w, r)
+		return
 	}
 
 	// Return a 404 if the request is for a directory
@@ -411,5 +410,5 @@ func checkESIConnectivity() {
 		log.WithError(err).Fatal("ESI unavailable")
 	}
 	// print current status
-	fmt.Println("Players online: ", status.Players)
+	log.Infof("Players online: %d", status.Players)
 }
