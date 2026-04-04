@@ -5,43 +5,83 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 )
+
+const maxRetries = 3
 
 // fetchURL sends an HTTP request built from method, url, params, and body using the provided context and client and returns the response body bytes.
 // It sets the "Accept: application/json" and "User-Agent" headers, appends any entries in params as URL query parameters, and treats only HTTP 200 as a successful response; any other status code results in an error.
+// On HTTP 429 Too Many Requests, it respects the Retry-After header (defaulting to 5s) and retries up to maxRetries times.
 func fetchURL(ctx context.Context, client *http.Client, method, url string, params map[string]string, body io.Reader) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("User-Agent", userAgent)
-
-	if len(params) > 0 {
-		q := req.URL.Query()
-		for key, value := range params {
-			q.Add(key, value)
+	for attempt := range maxRetries {
+		req, err := http.NewRequestWithContext(ctx, method, url, body)
+		if err != nil {
+			return nil, err
 		}
-		req.URL.RawQuery = q.Encode()
+
+		req.Header.Add("Accept", "application/json")
+		req.Header.Add("User-Agent", userAgent)
+
+		if len(params) > 0 {
+			q := req.URL.Query()
+			for key, value := range params {
+				q.Add(key, value)
+			}
+			req.URL.RawQuery = q.Encode()
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode == http.StatusTooManyRequests {
+			resp.Body.Close()
+
+			if attempt == maxRetries-1 {
+				return nil, fmt.Errorf("http error %d - %s", resp.StatusCode, url)
+			}
+
+			delay := 5 * time.Second
+			if ra := resp.Header.Get("Retry-After"); ra != "" {
+				if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
+					delay = time.Duration(secs) * time.Second
+				}
+			}
+
+			log.WithFields(log.Fields{
+				"url":     url,
+				"delay":   delay,
+				"attempt": attempt + 1,
+			}).Warn("rate limited, retrying after delay")
+
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(delay):
+			}
+
+			continue
+		}
+
+		defer resp.Body.Close()
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("http error %d - %s", resp.StatusCode, url)
+		}
+
+		return respBody, nil
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("http error %d - %s", resp.StatusCode, url)
-	}
-
-	return respBody, nil
+	return nil, fmt.Errorf("max retries exceeded - %s", url)
 }
 
 // ccpGet fetches the specified path from the CCP ESI API using HTTP GET and returns the response body.
@@ -58,7 +98,7 @@ func ccpPost(ctx context.Context, client *http.Client, url string, params map[st
 }
 
 // zkillGet fetches the resource at the given path from the zkill API and returns the response body.
-// 
+//
 // It returns the response body bytes on success, or a non-nil error if the request failed or the
 // response status was not 200 OK.
 func zkillGet(ctx context.Context, client *http.Client, url string) ([]byte, error) {
@@ -74,12 +114,6 @@ func zkillCheck(ctx context.Context, client *http.Client) bool {
 	}
 	req.Header.Add("User-Agent", userAgent)
 
-	// temporarily turn off retries
-	// retries := client.MaxRetries
-	// client.MaxRetries = 0
-	// defer func() {
-	// 	client.MaxRetries = retries
-	// }()
 	resp, err := client.Do(req)
 	if err != nil {
 		return false
