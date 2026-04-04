@@ -119,7 +119,11 @@ func securityHeaders(next http.Handler) http.Handler {
 		// ---- content policy ----
 		w.Header().Set(
 			"Content-Security-Policy",
-			"default-src 'self'; img-src 'self' https://images.evetech.net; style-src 'self' 'unsafe-inline'",
+			"default-src 'self'; "+
+				"script-src 'self' https://code.jquery.com https://cdn.datatables.net; "+
+				"style-src 'self' 'unsafe-inline' https://cdn.datatables.net; "+
+				"img-src 'self' https://images.evetech.net; "+
+				"font-src 'self' https://cdn.datatables.net;",
 		)
 
 		// ---- referrer ----
