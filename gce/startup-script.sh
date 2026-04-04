@@ -34,7 +34,7 @@ apt-get update
 apt-get install -yq ca-certificates supervisor
 
 # Get the application tar from the GCS bucket.
-gsutil cp $SCLH_DEPLOY_LOCATION /app.tar
+gcloud storage cp $SCLH_DEPLOY_LOCATION /app.tar
 mkdir -p /app
 tar -x -f /app.tar -C /app
 chmod +x /app/go-plh

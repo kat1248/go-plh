@@ -37,7 +37,7 @@ tar -u -f $TMP/bundle.tar -C ../go-plh images
 
 # [START gcs_push]
 # SCLH_DEPLOY_LOCATION is something like "gs://my-bucket/bookshelf-VERSION.tar".
-gsutil cp $TMP/bundle.tar $SCLH_DEPLOY_LOCATION
+gcloud storage cp $TMP/bundle.tar $SCLH_DEPLOY_LOCATION
 # [END gcs_push]
 
 rm -rf $TMP
