@@ -7,7 +7,7 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 	zgo.at/zcache/v2 v2.4.1
 )
 
